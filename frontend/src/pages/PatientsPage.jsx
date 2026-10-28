@@ -1,4 +1,4 @@
-// Patients list with search by name or ID, a filter bar (age group, area, email) and "Sort by", plus actions to view,
+// Patients list with search by name or ID, a filter bar (city, age group, area, email) and "Sort by", plus actions to view,
 // edit and create patients. Search runs on the backend 300 ms after the user stops typing (debounce), so we don't
 // call the API on every key; sorting and filters then work on the loaded list in the browser.
 // Viewing a patient calls the backend (GET /patients/:id), which records an audit entry.
@@ -45,7 +45,7 @@ const AGE_GROUPS = {
   senior: { label: 'Seniors (60+)', test: (years) => years >= 60 },
 };
 
-// "12 MG Road, Hyderabad" -> "MG Road"; "11 Secunderabad" -> "Secunderabad".
+// "12 MG Road, Hyderabad" -> area "MG Road", city "Hyderabad". A trailing PIN code ("..., Hyderabad, 500068") is skipped.
 function areaOf(patient) {
   return (patient.address || '')
     .split(',')[0]
@@ -53,7 +53,15 @@ function areaOf(patient) {
     .trim();
 }
 
-const NO_FILTERS = { ageGroup: null, area: null, email: null };
+function cityOf(patient) {
+  const parts = (patient.address || '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part && !/^\d+$/.test(part));
+  return parts.length > 1 ? parts[parts.length - 1] : '';
+}
+
+const NO_FILTERS = { city: null, ageGroup: null, area: null, email: null };
 
 export default function PatientsPage() {
   const [patients, setPatients] = useState([]);
@@ -150,9 +158,18 @@ export default function PatientsPage() {
 
   const ages = patients.map(age);
   const setFilter = (name) => (value) => setFilters((prev) => ({ ...prev, [name]: value ?? null }));
-  const areas = [...new Set(patients.map(areaOf).filter(Boolean))].sort();
+  const cities = [...new Set(patients.map(cityOf).filter(Boolean))].sort();
+  const areas = [
+    ...new Set(
+      patients
+        .filter((p) => !filters.city || cityOf(p) === filters.city)
+        .map(areaOf)
+        .filter(Boolean),
+    ),
+  ].sort();
   const filtersActive = Object.values(filters).some(Boolean);
   const visible = patients
+    .filter((p) => !filters.city || cityOf(p) === filters.city)
     .filter((p) => !filters.ageGroup || AGE_GROUPS[filters.ageGroup].test(age(p)))
     .filter((p) => !filters.area || areaOf(p) === filters.area)
     .filter((p) => !filters.email || (filters.email === 'yes') === Boolean(p.email))
@@ -181,6 +198,14 @@ export default function PatientsPage() {
       </StatRow>
 
       <FilterBar shown={visible.length} total={patients.length} filtersActive={filtersActive} onClear={() => setFilters(NO_FILTERS)}>
+        <Select
+          placeholder="All cities"
+          allowClear
+          value={filters.city}
+          onChange={(value) => setFilters((prev) => ({ ...prev, city: value ?? null, area: null }))}
+          options={cities.map((city) => ({ value: city, label: city }))}
+          style={{ width: 150 }}
+        />
         <Select
           placeholder="All ages"
           allowClear

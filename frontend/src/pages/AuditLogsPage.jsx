@@ -63,28 +63,38 @@ export default function AuditLogsPage() {
       },
     },
     {
-      title: 'Patient',
+      title: 'Patient or account',
       dataIndex: 'patientId',
       render: (patientId, log) =>
-        patientId && (
-          <Button type="link" style={{ padding: 0, height: 'auto', textAlign: 'left' }} onClick={() => setActivityFor(patientId)}>
-            <span>
-              <Typography.Text strong style={{ color: 'inherit' }}>
-                {log.patientName || 'Unknown patient'}
-              </Typography.Text>
-              <br />
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {patientId}
-              </Typography.Text>
-            </span>
-          </Button>
+        log.targetUsername ? (
+          <span>
+            <Typography.Text strong>{log.targetUsername}</Typography.Text>
+            <br />
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              Staff account
+            </Typography.Text>
+          </span>
+        ) : (
+          patientId && (
+            <Button type="link" style={{ padding: 0, height: 'auto', textAlign: 'left' }} onClick={() => setActivityFor(patientId)}>
+              <span>
+                <Typography.Text strong style={{ color: 'inherit' }}>
+                  {log.patientName || 'Unknown patient'}
+                </Typography.Text>
+                <br />
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {patientId}
+                </Typography.Text>
+              </span>
+            </Button>
+          )
         ),
     },
   ];
 
   return (
     <>
-      <PageHeader title="Audit Log" subtitle="Every view and change to patient records. Click a patient to see their details and full activity." />
+      <PageHeader title="Audit Log" subtitle="Every view and change to patient records, and every staff account change. Click a patient to see their details and full activity." />
       {error && <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }}>
         <Table rowKey="_id" columns={columns} dataSource={logs} loading={loading} scroll={{ x: 'max-content' }} pagination={{ pageSize: 15, hideOnSinglePage: true }} />
