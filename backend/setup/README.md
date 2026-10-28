@@ -9,7 +9,8 @@ setup/
 │   ├── 001-initial-schema.js   # users, patients, appointments, audit_logs, faq_sections + indexes
 │   ├── 002-chat-history.js     # conversations (AI chat history) + index
 │   ├── 003-staff-accounts.js   # users.active + users.lastLoginAt (staff management)
-│   └── 004-audit-log-indexes.js # audit_logs indexes for newest-first reads
+│   ├── 004-audit-log-indexes.js # audit_logs indexes for newest-first reads
+│   └── 005-refresh-tokens.js    # refresh_tokens (login sessions) + TTL index
 ├── init-env.js             # creates backend/.env (make env)
 ├── seed.js                 # loads seed-data/ and the FAQ docs into the database
 └── seed-data/
@@ -70,7 +71,7 @@ mongosh "$MONGO_URI" --eval '
   })'
 ```
 
-Expected: 2 users, 150 patients, 198 appointments, 15 FAQ sections, 4 migrations.
+Expected: 2 users, 150 patients, 198 appointments, 15 FAQ sections, 5 migrations.
 
 Other useful commands:
 
@@ -82,4 +83,4 @@ mongosh "$MONGO_URI" --eval 'db.faq_sections.getIndexes()'                      
 
 ## Adding a migration
 
-Create the next numbered file, e.g. `migrations/005-something.js`, exporting `{ description, async up(db) { … } }`, then run `npm run migrate`. Files run in name order, and each is recorded in the `migrations` collection so it never runs twice.
+Create the next numbered file, e.g. `migrations/006-something.js`, exporting `{ description, async up(db) { … } }`, then run `npm run migrate`. Files run in name order, and each is recorded in the `migrations` collection so it never runs twice.
