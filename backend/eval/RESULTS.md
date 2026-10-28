@@ -94,3 +94,19 @@ Only one case failed outright. The other examples below were scored correct or c
 2. **Judge:** decide whether derived numbers (half price to 250 rupees) are allowed. If not, tighten the judge prompt and add `mustNotContain` checks for computed values; if yes, say so in the system prompt so the behaviour is intentional.
 3. **Refusals:** extend the medical and injection patterns (medicine names, "antibiotic", "new rule", "list every patient") or let the model return a refusal type, so unsafe requests get the specific refusal instead of the fallback.
 4. **Coverage and variance:** run the set three times to measure run-to-run variance, and add paraphrase cases plus edge cases not covered yet: ambiguous names (for example "Aditya" matches three patients), a patient with no appointments, past vs upcoming appointments, and staff-role users.
+
+## Re-check: conversational replies and AI-built searches (29 Oct 2026)
+
+After adding chat replies (type `chat`, checked by the chat judge) and the `search_records` tool, 8 cases were added to the golden set (46 total). The new cases plus the 3 FAQ cases that regressed during development were run with `EVAL_CASES=...`:
+
+| Category | Cases | Result |
+|---|---|---|
+| faq (re-check) | Saturday hours, address and parking, contact | 3/3 |
+| chat | "hi", "good morning", "what can you do?", "thank you!" | 4/4 |
+| search_records | scheduled for Dr. Kavya Iyer (30), cancelled (12), completed for Dr. Anita Joshi (27), Bangalore patients born before 1961 (6 names) | 4/4 |
+| **Total** | 11 | **11/11**, 100% correct sources, average 1.6 s |
+
+- **What regressed and why:** right after the chat rules were added, questions addressed to "you" ("Are you open on Saturday?") were sometimes answered as `chat`, and the chat judge correctly rejected them for stating facts. One prompt line ("questions asked to *you* are about the clinic") fixed all three.
+- **Expected counts** came from the live database at the time of the run; they change if appointments are added or cancelled.
+- **Not re-run:** the other 35 cases, to stay within Groq's free daily token limit.
+

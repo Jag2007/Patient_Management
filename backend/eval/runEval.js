@@ -6,7 +6,10 @@ const path = require('path');
 const mongoose = require('mongoose');
 const connectDB = require('../config/db');
 const chatService = require('../services/chatService');
-const { cases } = require('./goldenSet.json');
+const goldenSet = require('./goldenSet.json');
+// EVAL_CASES=id1,id2 runs only those cases (handy for re-checking a few without using a whole day's token limit).
+const only = (process.env.EVAL_CASES || '').split(',').filter(Boolean);
+const cases = only.length ? goldenSet.cases.filter((c) => only.includes(c.id)) : goldenSet.cases;
 
 const EVAL_USER = { id: 'eval', username: 'eval', role: 'admin' };
 const PAUSE_MS = Number(process.env.EVAL_PAUSE_MS) || 6000; // Groq free tier is about 8k tokens per minute

@@ -128,7 +128,7 @@ make eval    # golden set, real model
 
 - **Tests:** auth and refresh tokens, patients, appointments, staff, AI tools and AI-built searches, chat replies and guardrails, chat memory, error responses. Run on `MONGO_URI_TEST`.
 - **Mocked LLM:** `jest.mock` swaps the Groq call for scripted replies (good answer, tool request, broken JSON, fake source, timeout). No network, free, same result every run.
-- **Golden set:** 38 questions with reference answers. Last run **37/38 (97.4%)**, 100% correct sources, 100% correct declines, ~2 s per question. Details in [RESULTS.md](backend/eval/RESULTS.md).
+- **Golden set:** 46 questions with reference answers (FAQ, patient lookups, follow-ups, declines, small talk, AI-built searches). Full run: **37/38 (97.4%)**, 100% correct sources and declines; re-check after the chat and search update: **11/11**. Details in [RESULTS.md](backend/eval/RESULTS.md).
 
 ---
 

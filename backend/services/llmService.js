@@ -88,7 +88,7 @@ async function chat(messages, tools, { onText, retried = false } = {}) {
     // A retry after text was already streamed would repeat it, so only retry before anything was sent.
     const wait = error.status === 429 && !retried && !streamed ? retryAfterSeconds(error) : null;
     if (wait !== null) {
-      await sleep(wait * 1000 + 250);
+      await sleep(Math.max(wait, 2) * 1000); // at least 2 s, so the per-minute token budget has refilled a little
       return chat(messages, tools, { onText, retried: true });
     }
 
