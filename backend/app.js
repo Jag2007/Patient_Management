@@ -18,6 +18,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/patients', requireLogin, require('./routes/patientRoutes'));
 app.use('/api/appointments', requireLogin, require('./routes/appointmentRoutes'));
 app.use('/api/audit-logs', requireLogin, require('./routes/auditLogRoutes'));
+app.use('/api/chat', requireLogin, require('./routes/chatRoutes'));
 
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 app.use(errorHandler);

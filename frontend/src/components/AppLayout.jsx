@@ -1,7 +1,7 @@
 // Page frame shown after login: brand, top menu, current user, and a logout button (with confirmation).
 // The Audit Log menu item is shown only to admins; this is for convenience, not security.
 import { Avatar, Button, Layout, Menu, Popconfirm, Tag, Typography } from 'antd';
-import { AuditOutlined, CalendarOutlined, LogoutOutlined, MedicineBoxFilled, TeamOutlined } from '@ant-design/icons';
+import { AuditOutlined, CalendarOutlined, LogoutOutlined, MedicineBoxFilled, RobotOutlined, TeamOutlined } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getSession, clearSession } from '../api/session';
 import { colors } from '../theme';
@@ -16,6 +16,7 @@ export default function AppLayout() {
   const items = [
     { key: '/patients', label: 'Patients', icon: <TeamOutlined /> },
     { key: '/appointments', label: 'Appointments', icon: <CalendarOutlined /> },
+    { key: '/assistant', label: 'AI Assistant', icon: <RobotOutlined /> },
     ...(user.role === 'admin' ? [{ key: '/audit-logs', label: 'Audit Log', icon: <AuditOutlined /> }] : []),
   ];
 

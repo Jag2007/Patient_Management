@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import PatientsPage from './pages/PatientsPage';
 import AppointmentsPage from './pages/AppointmentsPage';
 import AuditLogsPage from './pages/AuditLogsPage';
+import ChatPage from './pages/ChatPage';
 
 function RequireSession({ children }) {
   return getSession() ? children : <Navigate to="/login" replace />;
@@ -27,6 +28,7 @@ export default function App() {
       >
         <Route path="/patients" element={<PatientsPage />} />
         <Route path="/appointments" element={<AppointmentsPage />} />
+        <Route path="/assistant" element={<ChatPage />} />
         {isAdmin && <Route path="/audit-logs" element={<AuditLogsPage />} />}
       </Route>
       <Route path="*" element={<Navigate to="/patients" replace />} />
