@@ -43,6 +43,7 @@ Patient_Management/
 │   ├── middleware/      # login check, role check, error handler
 │   ├── services/        # business logic (patients, appointments, audit, AI chat)
 │   ├── tools/           # the AI tool and its permission rules
+│   ├── utils/           # small helpers (httpError)
 │   ├── docs/            # clinic FAQ documents (fictional)
 │   ├── seed/            # script that fills the database with demo data
 │   ├── tests/           # Jest + Supertest tests
