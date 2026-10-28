@@ -72,7 +72,7 @@ Copy `.env.example` to `backend/.env` and fill in the values.
 
 | Variable | Description |
 |---|---|
-| `PORT` | Backend port (default `5000`) |
+| `PORT` | Backend port (default `5050`) |
 | `MONGO_URI` | MongoDB connection string |
 | `MONGO_URI_TEST` | A separate database used only by tests |
 | `JWT_SECRET` | Random secret used to sign login tokens |
@@ -87,7 +87,7 @@ Copy `.env.example` to `backend/.env` and fill in the values.
 cd backend
 npm install
 npm run seed     # loads demo users, patients, appointments and FAQ documents
-npm run dev      # http://localhost:5000
+npm run dev      # http://localhost:5050
 
 # 2. Frontend (in a new terminal)
 cd frontend
