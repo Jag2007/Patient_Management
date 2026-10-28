@@ -1,7 +1,7 @@
-// Page frame shown after login: top menu, current user and role, and a logout button.
+// Page frame shown after login: top menu, current user and role, and a logout button (with confirmation).
 // The Audit Log menu item is shown only to admins; this is for convenience, not security.
-import { Layout, Menu, Button, Tag, Typography } from 'antd';
-import { LogoutOutlined } from '@ant-design/icons';
+import { Layout, Menu, Button, Popconfirm, Tag, Typography } from 'antd';
+import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getSession, clearSession } from '../api/session';
 
@@ -37,11 +37,20 @@ export default function AppLayout() {
           onClick={({ key }) => navigate(key)}
           style={{ flex: 1, minWidth: 0 }}
         />
-        <Typography.Text style={{ color: '#fff' }}>{user.username}</Typography.Text>
-        <Tag color={user.role === 'admin' ? 'gold' : 'blue'}>{user.role}</Tag>
-        <Button icon={<LogoutOutlined />} onClick={logout}>
-          Logout
-        </Button>
+        <Typography.Text style={{ color: '#fff', whiteSpace: 'nowrap' }}>
+          <UserOutlined /> {user.username}
+        </Typography.Text>
+        {user.role !== user.username && <Tag color={user.role === 'admin' ? 'gold' : 'blue'}>{user.role}</Tag>}
+        <Popconfirm
+          title="Log out?"
+          description="Are you sure you want to log out?"
+          okText="Log out"
+          cancelText="Stay"
+          placement="bottomRight"
+          onConfirm={logout}
+        >
+          <Button icon={<LogoutOutlined />}>Logout</Button>
+        </Popconfirm>
       </Header>
       <Content style={{ padding: 24, maxWidth: 1200, width: '100%', margin: '0 auto' }}>
         <Outlet />
