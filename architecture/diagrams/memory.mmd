@@ -1,5 +1,5 @@
 flowchart LR
     classDef default fill:#E7F0EB,stroke:#1F5E4F,stroke-width:1.5px,color:#14352D
-    Old["Older than 30 messages<br/>dropped"] --> Sum["Previous 20 messages<br/>sent as a short summary"] --> Recent["Last 10 messages<br/>sent word for word"] --> Q["New question"]
+    Old["Messages older than 30<br/>evicted"] --> Sum["Previous 20 messages<br/>rolling summary (LLM, async, cached)"] --> Recent["Last 10 messages<br/>sliding window, verbatim"] --> Q["New question<br/>prompt context · H1"]
     style Old fill:#F2F2F2,stroke:#9AA3A0,color:#5A6461
     style Q fill:#FFF4EC,stroke:#C0704A,color:#1C2B27

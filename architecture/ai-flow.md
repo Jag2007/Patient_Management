@@ -1,8 +1,8 @@
-# How the AI answers a question
+# AI pipeline architecture
 
 A clinic staff assistant: retrieval-augmented generation over the clinic documents (keyword retrieval, no embeddings), tool calling for patient data and AI-built searches, and checks before anything is shown. It also handles normal conversation ("hi", "what can you do?"). If any check fails, the user gets *"I don't have enough information to answer that."*
 
-![How the AI answers a question](images/ai-flow.png)
+![AI pipeline architecture](images/ai-flow.png)
 
 <sub>Source: [`ai-flow.mmd`](diagrams/ai-flow.mmd)</sub>
 
@@ -49,6 +49,18 @@ No patient, several matching names, no appointments, or an invalid search: the b
 
 The summary only helps the model understand references like "her" or "the patient from earlier". Patient facts still have to come from a tool result or a document.
 
-## Why answers aren't streamed
+## Streaming (SSE)
 
-Every answer is checked by the judge before the user sees it. Streaming tokens as they arrive would show text that hasn't been checked yet, and could show an answer that is then replaced by the fallback. Keeping the check was chosen over streaming. One option for later: stream progress states ("searching documents", "looking up patient", "checking answer") over SSE while the answer itself still arrives whole.
+`POST /api/chat/stream` returns `text/event-stream`. The final model call uses Groq `stream: true`; `utils/answerStream.js` extracts only the `answer` field from the streamed JSON, so the client never sees raw JSON.
+
+| Event | Payload | When |
+|---|---|---|
+| `status` | `"Searching clinic documents"`, `"Thinking"`, `"Looking up the patient"`, `"Searching records"`, `"Checking the answer"` | Each pipeline step |
+| `reset` | none | Start of each model call (drops a draft from an earlier round) |
+| `draft` | Answer text tokens | While the model writes |
+| `done` | `{ answer, kind, sources, verified, conversationId }` | After verification; replaces the draft |
+| `error` | `{ status, error }` | Failure after streaming started |
+
+- **Verification is unchanged:** the draft is shown greyed as "checked before it is final"; `done` carries the judged reply (or the fallback).
+- **Errors before the first event** (empty question, another user's chat) return normal JSON 400/404.
+- **Transport:** headers are sent on the first event, `res.flush()` defeats gzip buffering, and the client reads the stream with `fetch` + `ReadableStream` (axios can't), with the same 401 → refresh → retry handling.

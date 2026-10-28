@@ -47,6 +47,7 @@ Base URL: `http://localhost:5050/api`. Interactive version: [Swagger](http://loc
 | Method | Endpoint | Purpose | Body / params | Access | Success |
 |---|---|---|---|---|---|
 | POST | `/chat` | Ask a question | `question` (≤ 500 chars), `conversationId` (optional) | Admin, staff · 20/min | 200 `{ answer, kind, sources, verified, conversationId }`; `kind` is `answer`, `chat`, `fallback`, `refusal` or `notice` |
+| POST | `/chat/stream` | Ask a question, streamed | same as `/chat` | Admin, staff · 20/min | 200 `text/event-stream`: `status`, `reset`, `draft` (answer tokens), then `done` (same body as `/chat`) or `error` |
 | GET | `/chat/conversations` | Your saved chats | | Admin, staff | 200 `[{ _id, title, updatedAt }]` |
 | GET | `/chat/conversations/:id` | Open a chat | | Owner only | 200 chat with messages · 404 if not yours |
 | DELETE | `/chat/conversations/:id` | Delete a chat | | Owner only | 204 |

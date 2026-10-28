@@ -4,11 +4,13 @@ Features planned for the next version.
 
 ---
 
-## Built: AI-built database queries
+## Built: AI-built database queries and streaming
 
 The first planned feature is now in the app as the **`search_records`** tool. The AI picks a collection and filters, and the backend validates every value, builds the read-only query itself and returns only non-sensitive fields. Details: [architecture/ai-flow.md](architecture/ai-flow.md#ai-tools).
 
 **Next step for it:** more filters (e.g. age range, appointments per patient), and grouped counts ("appointments per clinician this month").
+
+**Streaming** is built too: `POST /api/chat/stream` sends status steps and the answer tokens over Server-Sent Events, and the verified reply at the end. Details: [architecture/ai-flow.md](architecture/ai-flow.md#streaming-sse).
 
 ---
 
@@ -20,14 +22,7 @@ The first planned feature is now in the app as the **`search_records`** tool. Th
 
 ---
 
-## 2. Streaming progress
-
-- **Server-Sent Events** from `POST /api/chat` with status steps: *searching documents*, *looking up patient*, *checking answer*.
-- **The answer itself still arrives whole,** after the judge has checked it, so unchecked text is never shown.
-
----
-
-## 3. Cancellation notifications
+## 2. Cancellation notifications
 
 - **After the cancel transaction commits,** queue a WhatsApp or SMS message to the patient (e.g. Twilio or Meta WhatsApp Cloud API).
 - **Retries from a queue,** so a messaging failure never undoes a cancellation; the result is written to the audit log.

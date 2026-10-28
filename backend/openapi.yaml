@@ -198,6 +198,31 @@ paths:
         '503': { description: AI busy or not configured }
         '504': { description: AI took too long }
 
+  /chat/stream:
+    post:
+      tags: [AI Assistant]
+      summary: Ask the AI assistant, streamed over Server-Sent Events
+      description: "Same body and limits as POST /chat. Events: status (pipeline step), reset (new draft), draft (answer tokens), then done (same body as POST /chat) or error ({ status, error }). A bad question or someone else's chat returns a normal JSON 400/404 before streaming starts."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question: { type: string, maxLength: 500, example: What is the late cancellation fee? }
+                conversationId: { type: string }
+      responses:
+        '200':
+          description: Event stream
+          content:
+            text/event-stream:
+              example: "event: status\ndata: \"Thinking\"\n\nevent: draft\ndata: \"The late fee\"\n\nevent: done\ndata: {\"answer\":\"The late fee is 300 rupees.\",\"kind\":\"answer\"}\n\n"
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { description: Too many questions }
+
   /chat/conversations:
     get:
       tags: [AI Assistant]

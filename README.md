@@ -64,13 +64,14 @@ Then open **http://localhost:5173** and log in with `admin` / `Admin@123` or `st
 
 - **Table of every endpoint:** [API.md](API.md)
 - **Interactive docs (Swagger):** http://localhost:5050/api/docs once the backend is running
+- **Streaming:** the AI Assistant uses `POST /api/chat/stream` (Server-Sent Events): status steps, then the answer tokens live from Groq (`stream: true`), then the verified reply.
 
 ---
 
 ## Architecture
 
-- **Architecture note (LLM, retrieval approach, AI tools, chat memory):** [architecture/ai-flow.md](architecture/ai-flow.md)
-- **Diagrams:** [system](architecture/system.md) · [how the AI answers](architecture/ai-flow.md) · [database](architecture/database.md)
+- **Architecture note (LLM, retrieval, AI tools, session memory, streaming):** [architecture/ai-flow.md](architecture/ai-flow.md)
+- **Diagrams:** [system architecture](architecture/system.md) · [AI pipeline architecture](architecture/ai-flow.md) · [database architecture](architecture/database.md)
 
 ---
 
@@ -133,10 +134,10 @@ make eval    # golden set, real model
 
 ## Planned features
 
-Details and approach in [PLANNED_FEATURES.md](PLANNED_FEATURES.md). (AI-built database queries, planned earlier, are now built as the `search_records` tool.)
+Details and approach in [PLANNED_FEATURES.md](PLANNED_FEATURES.md). (AI-built database queries and streaming, planned earlier, are now built.)
 
 - **Semantic and hybrid search:** embeddings in MongoDB Atlas Vector Search, combined with today's keyword search.
-- **Streaming progress** and **cancellation notifications** (WhatsApp/SMS).
+- **Cancellation notifications** (WhatsApp/SMS) after the cancel transaction commits.
 
 ---
 
@@ -145,7 +146,7 @@ Details and approach in [PLANNED_FEATURES.md](PLANNED_FEATURES.md). (AI-built da
 | Limitation | Next step |
 |---|---|
 | Keyword search, no embeddings: misses synonyms ("fees" vs "billing") | Hybrid search with Atlas Vector Search |
-| Answers aren't streamed (the judge checks the full answer first) | Stream progress states over SSE |
+| Streamed drafts are unverified until the judge finishes (shown greyed, then replaced) | Stream sentence by sentence, each verified as it completes |
 | Chat memory: last 10 messages plus a summary of the 20 before; older turns are dropped | Summarise in bigger blocks for very long chats |
 | Every staff member can see every patient | Assign patients to clinicians |
 | Access token in localStorage; 30 s account cache is per server | Token in memory only; shared cache (Redis) |

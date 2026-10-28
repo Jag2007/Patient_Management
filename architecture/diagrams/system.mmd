@@ -4,29 +4,30 @@ flowchart TB
     classDef ai fill:#EFEBF7,stroke:#6B5B95,stroke-width:2px,color:#2E2547
     classDef data fill:#EAF3FD,stroke:#1C5FA8,stroke-width:2px,color:#123F70
 
-    subgraph Client["① Browser"]
-        UI["<b>React app</b><br/>Patients · Appointments · AI Assistant<br/>Documents · Audit Log · Staff"]:::client
+    subgraph Client["① Client · React SPA"]
+        direction LR
+        UI["<b>Pages · Vite + Ant Design</b><br/>Patients · Appointments · AI Assistant<br/>Documents · Audit Log · Staff"]:::client ~~~ HTTP["<b>HTTP layer</b><br/>axios (REST) · fetch stream reader (SSE)<br/>401 → silent token refresh → retry"]:::client
     end
 
-    subgraph Server["② Express API"]
+    subgraph Server["② Express API · Node.js"]
         direction LR
-        MW["<b>Security</b><br/>helmet · CORS · gzip<br/>JSON · cookies"]:::api --> AUTH["<b>Access checks</b><br/>requireLogin · requireRole<br/>JWT + account still active"]:::api --> SVC["<b>Services</b><br/>patients · appointments · staff<br/>audit · chat · auth"]:::api
+        MW["<b>Middleware</b><br/>helmet · CORS · gzip<br/>JSON body (10 KB) · cookie-parser"]:::api --> AUTH["<b>AuthN / AuthZ</b><br/>requireLogin: JWT (15 min)<br/>+ active-account check<br/>requireRole: RBAC"]:::api --> SVC["<b>Service layer</b><br/>patients · appointments · staff<br/>audit · auth · chat · memory"]:::api
     end
 
-    subgraph AI["③ AI"]
+    subgraph AI["③ AI pipeline"]
         direction LR
-        LLM["<b>Groq LLM</b><br/>openai/gpt-oss-20b<br/>answer + judge"]:::ai -->|"asks for a tool"| TOOLS["<b>Patient tools</b><br/>read-only<br/>role-checked"]:::ai
+        LLM["<b>Groq LLM · gpt-oss-20b</b><br/>function calling · stream=true<br/>LLM-as-judge"]:::ai -->|"tool call"| TOOLS["<b>Tool layer</b><br/>RBAC + argument validation<br/>read-only queries · audited"]:::ai
     end
 
     subgraph Data["④ MongoDB Atlas"]
         direction LR
-        CORE[("<b>Records</b><br/>patients · appointments<br/>users · audit_logs")]:::data ~~~ AIDATA[("<b>AI and sessions</b><br/>faq_sections · conversations<br/>refresh_tokens")]:::data
+        CORE[("<b>Records · Mongoose ODM</b><br/>patients · appointments<br/>users · audit_logs")]:::data ~~~ AIDATA[("<b>AI and sessions</b><br/>faq_sections (text index)<br/>conversations · refresh_tokens (TTL)")]:::data
     end
 
-    Client -->|"HTTPS · access token + refresh cookie"| Server
-    Server -->|"question + context"| AI
-    Server -->|"reads / writes"| Data
-    AI -->|"fixed read-only queries"| Data
+    Client -->|"HTTPS · REST + SSE<br/>Bearer access token · httpOnly refresh cookie"| Server
+    Server -->|"prompt + retrieved context + tools"| AI
+    Server -->|"CRUD · transactions"| Data
+    AI -->|"parameterised read-only queries"| Data
 
     style Client fill:#FFFBF7,stroke:#C0704A,stroke-width:1.5px
     style Server fill:#F6FAF8,stroke:#1F5E4F,stroke-width:1.5px

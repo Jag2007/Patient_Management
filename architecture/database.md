@@ -1,4 +1,4 @@
-# Database
+# Database architecture
 
 MongoDB Atlas, seven collections. The top row holds the main records; each one below links back to them.
 
