@@ -25,7 +25,7 @@ async function listAppointments(patientId) {
     if (!patient) return [];
     filter.patient = patient._id;
   }
-  return Appointment.find(filter).populate('patient', 'patientId name').sort({ dateTime: -1 }).limit(200);
+  return Appointment.find(filter).populate('patient', 'patientId name').sort({ dateTime: -1 }).limit(500);
 }
 
 async function createAppointment(body = {}, user) {

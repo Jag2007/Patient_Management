@@ -1,8 +1,8 @@
 // Page frame shown after login: a hospital-style left sidebar (brand, menu, signed-in user, logout)
 // and the page content, which fades in on every page change. On small screens the sidebar collapses.
-// The Audit Log menu item is shown only to admins; this is for convenience, not security.
+// The Documents and Audit Log menu items are shown only to admins; this is for convenience, not security.
 import { Avatar, Button, Layout, Menu, Popconfirm, Typography } from 'antd';
-import { AuditOutlined, CalendarOutlined, LogoutOutlined, MessageOutlined, TeamOutlined } from '@ant-design/icons';
+import { AuditOutlined, CalendarOutlined, FileTextOutlined, LogoutOutlined, MessageOutlined, TeamOutlined } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { getSession, clearSession } from '../api/session';
@@ -20,7 +20,12 @@ export default function AppLayout() {
     { key: '/patients', label: 'Patients', icon: <TeamOutlined /> },
     { key: '/appointments', label: 'Appointments', icon: <CalendarOutlined /> },
     { key: '/assistant', label: 'AI Assistant', icon: <MessageOutlined /> },
-    ...(user.role === 'admin' ? [{ key: '/audit-logs', label: 'Audit Log', icon: <AuditOutlined /> }] : []),
+    ...(user.role === 'admin'
+      ? [
+          { key: '/documents', label: 'Documents', icon: <FileTextOutlined /> },
+          { key: '/audit-logs', label: 'Audit Log', icon: <AuditOutlined /> },
+        ]
+      : []),
   ];
 
   function logout() {

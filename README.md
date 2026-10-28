@@ -16,6 +16,8 @@ If the answer is not in that data, the assistant says so instead of guessing.
 - **AI assistant:** answers from clinic FAQ documents and patient records, and always shows its sources
 - **AI tools:** `get_patient_appointments` and `get_patient_details`, which the AI can request and the backend checks before running
 - **Audit log:** records who viewed or changed which patient, with a per-patient activity timeline (admin only)
+- **Documents:** admins can read every clinic document the AI answers from, section by section
+- **Seed data:** 100 synthetic patients with about 135 appointments, so lists, search and paging can be tried at a realistic size
 
 ---
 
@@ -146,8 +148,9 @@ Every request goes through the same four steps:
 | Manage appointments | ✅ | ✅ |
 | Use the AI assistant and its tools | ✅ | ✅ |
 | View the audit log and patient activity | ✅ | ❌ |
+| View the AI's documents | ✅ | ❌ |
 
-Permissions are enforced in backend code. The frontend hides the Audit Log menu for staff only for convenience; calling the API directly still returns `403`.
+Permissions are enforced in backend code. The frontend hides the Documents and Audit Log menus for staff only for convenience; calling the API directly still returns `403`.
 
 ---
 
@@ -184,6 +187,7 @@ Permissions are enforced in backend code. The frontend hides the Audit Log menu 
 | PATCH | `/api/appointments/:id/cancel` | admin, staff | Cancel an appointment |
 | POST | `/api/chat` | admin, staff | Ask the AI assistant: `{ question, previousQuestions? }` (rate limited) |
 | GET | `/api/audit-logs?patientId=` | admin | View the audit log, or one patient's activity |
+| GET | `/api/documents` | admin | The AI's clinic documents, grouped by file and section |
 
 ---
 
@@ -231,6 +235,20 @@ If Groq is slow, down or rate-limited, the user sees a friendly message ("The as
 ### Why keyword search instead of embeddings?
 
 The FAQ is small, and keyword search is simple, predictable and easy to debug: you can see exactly why a paragraph matched. The trade-off is that it misses synonyms (see Known limitations).
+
+---
+
+## Clinic documents (the AI's knowledge)
+
+All fictional. They live in `backend/docs/`, and `npm run seed` splits each into paragraph sections (`faq_sections`). Admins can read them on the **Documents** page; section numbers match the source tags under chat answers.
+
+| File | Title | What it covers |
+|---|---|---|
+| `opening-hours.md` | Opening Hours | Weekday and Saturday hours, walk-in times, pharmacy hours |
+| `cancellation-policy.md` | Cancellation Policy | Free cancellation window, the 300-rupee late fee, missed-appointment rule |
+| `billing.md` | Billing and Payments | Consultation prices, payment methods (cash, cards, UPI), receipts |
+| `insurance.md` | Insurance | Partner insurers, documents to bring, reimbursement for other insurers |
+| `contact.md` | Contact Information | Address, parking, phone and email, emergency number |
 
 ---
 
@@ -294,7 +312,7 @@ cd backend
 npm test
 ```
 
-36 tests run against the separate `MONGO_URI_TEST` database. The AI tests replace Groq with a Jest mock, so they never call the real API. That also lets them simulate the model misbehaving.
+37 tests run against the separate `MONGO_URI_TEST` database. The AI tests replace Groq with a Jest mock, so they never call the real API. That also lets them simulate the model misbehaving.
 
 **Core API**
 - Correct login returns a token and role; requests without a token are rejected; wrong username and wrong password give the same error
@@ -303,7 +321,7 @@ npm test
 - Too many failed logins from one IP are blocked with `429`
 - Appointments in the past or more than a year ahead are rejected
 - Cancelling the same appointment twice fails the second time
-- Staff get `403` on the audit log; the log stores only patient IDs
+- Staff get `403` on the audit log; admins can read the AI's documents grouped by file and staff get `403`; the log stores only patient IDs
 
 **AI tools**
 - A disallowed role, an unknown tool, a bad patient ID, extra arguments, both `patientId` and `name`, and non-JSON arguments are all rejected

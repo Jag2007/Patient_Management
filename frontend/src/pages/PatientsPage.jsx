@@ -147,7 +147,7 @@ export default function PatientsPage() {
       </StatRow>
 
       <Card styles={{ body: { padding: 0 } }}>
-        <Table rowKey="_id" columns={columns} dataSource={patients} loading={loading} scroll={{ x: 'max-content' }} pagination={{ pageSize: 10, hideOnSinglePage: true }} />
+        <Table rowKey="_id" columns={columns} dataSource={patients} loading={loading} scroll={{ x: 'max-content' }} pagination={{ defaultPageSize: 10, showSizeChanger: true, hideOnSinglePage: true }} />
       </Card>
 
       <PatientFormModal

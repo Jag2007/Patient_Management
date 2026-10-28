@@ -1,4 +1,5 @@
-// Fills the database with demo data: 2 users, 10 fictional patients, 15 appointments, FAQ sections.
+// Fills the database with demo data: 2 users, 100 fictional patients, their appointments, and FAQ sections.
+// The first 10 patients are hand-written; the other 90 are generated from name lists, so every run gives the same data.
 // It wipes these collections first, so running "npm run seed" always gives the same clean start.
 // FAQ files in backend/docs are split into paragraphs; each paragraph becomes one searchable FaqSection.
 require('dotenv').config({ quiet: true });
@@ -46,6 +47,35 @@ const appointments = [
   [8, 9, 'Dr. Anita Joshi', 'Vaccination', 'scheduled'],
   [9, -2, 'Dr. Kavya Iyer', 'Fever consultation', 'completed'],
 ];
+
+// 90 more synthetic patients. First names and surnames differ from the 10 above and from the clinicians,
+// so demo questions like "tell me about Ananya Rao" still match exactly one patient.
+const FIRST_NAMES = ['Aarav', 'Aditi', 'Akash', 'Anika', 'Arnav', 'Bhavya', 'Chetan', 'Deepa', 'Dev', 'Esha', 'Farhan', 'Gauri', 'Harsh', 'Ishaan', 'Jaya',
+  'Kabir', 'Lakshmi', 'Manish', 'Nandini', 'Nikhil', 'Pooja', 'Pranav', 'Rhea', 'Sanjay', 'Shreya', 'Siddharth', 'Tanvi', 'Uday', 'Varun', 'Zoya'];
+const LAST_NAMES = ['Agarwal', 'Bose', 'Chopra', 'Desai', 'Gupta', 'Khan', 'Kulkarni', 'Mishra', 'Pillai', 'Saxena', 'Shetty', 'Verma', 'Yadav'];
+const AREAS = ['Madhapur', 'Kondapur', 'Gachibowli', 'Ameerpet', 'Begumpet', 'Kukatpally', 'Secunderabad', 'Banjara Hills', 'Jubilee Hills', 'Miyapur'];
+const CLINICIANS = ['Dr. Kavya Iyer', 'Dr. Suresh Patel', 'Dr. Anita Joshi'];
+const REASONS = ['Routine check-up', 'Follow-up visit', 'Blood test review', 'Vaccination', 'Allergy consultation', 'Back pain consultation', 'Blood pressure review', 'Diabetes review'];
+
+for (let i = 0; i < 90; i++) {
+  const first = FIRST_NAMES[i % FIRST_NAMES.length];
+  const last = LAST_NAMES[i % LAST_NAMES.length];
+  const month = String((i % 12) + 1).padStart(2, '0');
+  const day = String((i % 28) + 1).padStart(2, '0');
+  patients.push({
+    name: `${first} ${last}`,
+    dateOfBirth: `${1950 + ((i * 7) % 70)}-${month}-${day}`,
+    phone: String(9876543220 + i),
+    email: `${first}.${last}@example.com`.toLowerCase(),
+    address: `${10 + i} ${AREAS[i % AREAS.length]}, Hyderabad`,
+  });
+
+  // One appointment each (between 60 days ago and 59 days ahead), and a follow-up for every third patient.
+  const days = ((i * 13) % 120) - 60;
+  const status = days < 0 ? (i % 9 === 0 ? 'cancelled' : 'completed') : i % 11 === 0 ? 'cancelled' : 'scheduled';
+  appointments.push([10 + i, days, CLINICIANS[i % 3], REASONS[i % REASONS.length], status]);
+  if (i % 3 === 0) appointments.push([10 + i, days + 30, CLINICIANS[(i + 1) % 3], 'Follow-up visit', days + 30 < 0 ? 'completed' : 'scheduled']);
+}
 
 function at10am(daysFromToday) {
   const date = new Date(Date.now() + daysFromToday * DAY);

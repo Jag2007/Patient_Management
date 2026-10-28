@@ -3,6 +3,7 @@
 // They call the real Express routes with Supertest against the test database.
 const { app, request, setupTestDb, loginAs, closeTestDb } = require('./helpers');
 const AuditLog = require('../models/AuditLog');
+const FaqSection = require('../models/FaqSection');
 
 const DAY = 24 * 60 * 60 * 1000;
 let staffToken;
@@ -131,6 +132,31 @@ describe('Audit log permissions', () => {
 
     const stored = await AuditLog.findOne().lean();
     expect(Object.keys(stored).sort()).toEqual(['__v', '_id', 'action', 'createdAt', 'patientId', 'username']);
+  });
+});
+
+describe('Documents', () => {
+  test('admin sees the AI documents grouped by file, staff get 403', async () => {
+    await FaqSection.create([
+      { source: 'billing.md', section: 2, text: 'Billing and Payments: Patients can pay with UPI.' },
+      { source: 'billing.md', section: 1, text: 'Billing and Payments: A consultation costs 500 rupees.' },
+    ]);
+
+    const staffRes = await asStaff(request(app).get('/api/documents'));
+    expect(staffRes.status).toBe(403);
+
+    const res = await request(app).get('/api/documents').set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([
+      {
+        source: 'billing.md',
+        title: 'Billing and Payments',
+        sections: [
+          { section: 1, text: 'A consultation costs 500 rupees.' },
+          { section: 2, text: 'Patients can pay with UPI.' },
+        ],
+      },
+    ]);
   });
 });
 
