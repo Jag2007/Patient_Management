@@ -74,7 +74,7 @@ export default function AuditLogsPage() {
       <PageHeader title="Audit Log" subtitle="Every view and change to patient records. Click a patient ID to see their full activity." />
       {error && <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }}>
-        <Table rowKey="_id" columns={columns} dataSource={logs} loading={loading} scroll={{ x: true }} pagination={{ pageSize: 15, hideOnSinglePage: true }} />
+        <Table rowKey="_id" columns={columns} dataSource={logs} loading={loading} scroll={{ x: 'max-content' }} pagination={{ pageSize: 15, hideOnSinglePage: true }} />
       </Card>
       <PatientActivityDrawer patientId={activityFor} onClose={() => setActivityFor(null)} />
     </>

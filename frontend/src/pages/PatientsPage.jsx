@@ -4,13 +4,15 @@
 // Admins also get "Activity", which opens that patient's audit history in a side drawer.
 import { useCallback, useEffect, useState } from 'react';
 import { App, Avatar, Button, Card, Descriptions, Input, Modal, Space, Table, Typography } from 'antd';
-import { EditOutlined, EyeOutlined, HistoryOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { EditOutlined, EyeOutlined, HistoryOutlined, PlusOutlined, SearchOutlined, TeamOutlined, SmileOutlined, UserOutlined, HeartOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api, { errorMessage } from '../api/client';
 import { getSession } from '../api/session';
 import PageHeader from '../components/PageHeader';
 import PatientFormModal from '../components/PatientFormModal';
 import PatientActivityDrawer from '../components/PatientActivityDrawer';
+import StatCard from '../components/StatCard';
+import StatRow from '../components/StatRow';
 import { colors } from '../theme';
 
 function initials(name) {
@@ -72,7 +74,7 @@ export default function PatientsPage() {
       title: 'Patient',
       render: (_, p) => (
         <Space>
-          <Avatar style={{ background: colors.primaryTint, color: colors.primary }}>{initials(p.name)}</Avatar>
+          <Avatar style={{ background: colors.primarySoft, color: colors.primary }}>{initials(p.name)}</Avatar>
           <div>
             <Typography.Text strong>{p.name}</Typography.Text>
             <br />
@@ -113,11 +115,13 @@ export default function PatientsPage() {
     },
   ];
 
+  const ages = patients.map((p) => dayjs().diff(p.dateOfBirth, 'year'));
+
   return (
     <>
       <PageHeader
         title="Patients"
-        subtitle={`${patients.length} patient${patients.length === 1 ? '' : 's'}`}
+        subtitle="Search, view and update patient records"
         actions={
           <>
             <Input
@@ -135,8 +139,15 @@ export default function PatientsPage() {
         }
       />
 
+      <StatRow>
+        <StatCard icon={<TeamOutlined />} label={search ? 'Matching patients' : 'Total patients'} value={patients.length} color={colors.primary} />
+        <StatCard icon={<SmileOutlined />} label="Children (under 18)" value={ages.filter((age) => age < 18).length} color={colors.info} />
+        <StatCard icon={<UserOutlined />} label="Adults (18–59)" value={ages.filter((age) => age >= 18 && age < 60).length} color={colors.accent} />
+        <StatCard icon={<HeartOutlined />} label="Seniors (60+)" value={ages.filter((age) => age >= 60).length} color={colors.ai} />
+      </StatRow>
+
       <Card styles={{ body: { padding: 0 } }}>
-        <Table rowKey="_id" columns={columns} dataSource={patients} loading={loading} scroll={{ x: true }} pagination={{ pageSize: 10, hideOnSinglePage: true }} />
+        <Table rowKey="_id" columns={columns} dataSource={patients} loading={loading} scroll={{ x: 'max-content' }} pagination={{ pageSize: 10, hideOnSinglePage: true }} />
       </Card>
 
       <PatientFormModal

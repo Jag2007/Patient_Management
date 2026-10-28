@@ -16,8 +16,8 @@ export const ACTIVITY = {
   'patient.update': { label: 'Edited patient', color: colors.warning, icon: <EditOutlined /> },
   'appointment.create': { label: 'Booked appointment', color: colors.primary, icon: <CalendarOutlined /> },
   'appointment.cancel': { label: 'Cancelled appointment', color: colors.error, icon: <CloseCircleOutlined /> },
-  'ai.tool.get_patient_appointments': { label: 'AI looked up appointments', color: colors.purple, icon: <RobotOutlined /> },
-  'ai.tool.get_patient_details': { label: 'AI looked up patient details', color: colors.purple, icon: <RobotOutlined /> },
+  'ai.tool.get_patient_appointments': { label: 'AI looked up appointments', color: colors.ai, icon: <RobotOutlined /> },
+  'ai.tool.get_patient_details': { label: 'AI looked up patient details', color: colors.ai, icon: <RobotOutlined /> },
 };
 
 export function activityInfo(action) {

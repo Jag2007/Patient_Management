@@ -1,0 +1,79 @@
+/* Small global styles and animations. Everything else is styled through the Ant Design theme in theme.js. */
+body {
+  margin: 0;
+  background: #f6f4ee;
+}
+
+/* Main content area next to the sidebar. On small screens the sidebar collapses into a button at the top left. */
+.app-content {
+  padding: 28px 32px 40px;
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+@media (max-width: 991px) {
+  .app-content { padding: 72px 16px 32px; }
+}
+
+/* Pages fade in and rise slightly when you switch between them. */
+.page-enter {
+  animation: fadeUp 0.35s ease-out both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Summary cards lift gently on hover. */
+.stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(20, 53, 45, 0.08);
+}
+
+/* Chat bubbles slide in. */
+.bubble-in {
+  animation: fadeUp 0.25s ease-out both;
+}
+
+/* "Typing" dots while the assistant is thinking. */
+.typing span {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin: 0 2px;
+  border-radius: 50%;
+  background: #7c8a85;
+  animation: blink 1.2s infinite ease-in-out;
+}
+.typing span:nth-child(2) { animation-delay: 0.15s; }
+.typing span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes blink {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* Heartbeat line on the login page: the line draws itself, then repeats. */
+.ecg-line {
+  stroke-dasharray: 900;
+  stroke-dashoffset: 900;
+  animation: draw 3s ease-in-out infinite;
+}
+
+@keyframes draw {
+  0% { stroke-dashoffset: 900; }
+  60% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -900; }
+}
+
+/* Respect users who prefer less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter, .bubble-in, .typing span, .ecg-line, .stat-card { animation: none; transition: none; }
+  .ecg-line { stroke-dashoffset: 0; }
+}

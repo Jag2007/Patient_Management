@@ -2,11 +2,14 @@
 // Cancel asks "Are you sure?" first; the backend then cancels atomically, so double clicks are safe.
 import { useCallback, useEffect, useState } from 'react';
 import { App, Button, Card, Popconfirm, Segmented, Table, Tag, Typography } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { CalendarOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api, { errorMessage } from '../api/client';
 import PageHeader from '../components/PageHeader';
 import AppointmentFormModal from '../components/AppointmentFormModal';
+import StatCard from '../components/StatCard';
+import StatRow from '../components/StatRow';
+import { colors } from '../theme';
 
 const STATUS_COLORS = { scheduled: 'processing', completed: 'success', cancelled: 'error' };
 const FILTERS = ['all', 'scheduled', 'completed', 'cancelled'];
@@ -45,6 +48,8 @@ export default function AppointmentsPage() {
   }
 
   const visible = statusFilter === 'all' ? appointments : appointments.filter((a) => a.status === statusFilter);
+  const countByStatus = (status) => appointments.filter((a) => a.status === status).length;
+  const todayCount = appointments.filter((a) => a.status === 'scheduled' && dayjs(a.dateTime).isSame(dayjs(), 'day')).length;
 
   const columns = [
     {
@@ -102,13 +107,20 @@ export default function AppointmentsPage() {
     <>
       <PageHeader
         title="Appointments"
-        subtitle={`${appointments.filter((a) => a.status === 'scheduled').length} upcoming`}
+        subtitle="Book, track and cancel patient appointments"
         actions={
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setFormOpen(true)}>
             New appointment
           </Button>
         }
       />
+
+      <StatRow>
+        <StatCard icon={<ClockCircleOutlined />} label="Today" value={todayCount} color={colors.accent} />
+        <StatCard icon={<CalendarOutlined />} label="Upcoming" value={countByStatus('scheduled')} color={colors.info} />
+        <StatCard icon={<CheckCircleOutlined />} label="Completed" value={countByStatus('completed')} color={colors.success} />
+        <StatCard icon={<CloseCircleOutlined />} label="Cancelled" value={countByStatus('cancelled')} color={colors.error} />
+      </StatRow>
 
       <Segmented
         options={FILTERS.map((f) => ({ value: f, label: f[0].toUpperCase() + f.slice(1) }))}
@@ -118,7 +130,7 @@ export default function AppointmentsPage() {
       />
 
       <Card styles={{ body: { padding: 0 } }}>
-        <Table rowKey="_id" columns={columns} dataSource={visible} loading={loading} scroll={{ x: true }} pagination={{ pageSize: 10, hideOnSinglePage: true }} />
+        <Table rowKey="_id" columns={columns} dataSource={visible} loading={loading} scroll={{ x: 'max-content' }} pagination={{ pageSize: 10, hideOnSinglePage: true }} />
       </Card>
 
       <AppointmentFormModal
