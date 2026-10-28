@@ -1,5 +1,6 @@
 // Admin-only page listing audit entries: who did what to which patient, and when.
-// Actions are shown as readable labels with filters; clicking a patient ID opens that patient's activity.
+// Actions are shown as readable labels with filters; each row shows the patient's name and ID,
+// and clicking a patient opens their details and full activity.
 // Staff never see this menu item, and the backend returns 403 if they call the API directly.
 import { useEffect, useState } from 'react';
 import { Alert, Button, Card, Table, Tag, Typography } from 'antd';
@@ -60,10 +61,18 @@ export default function AuditLogsPage() {
     {
       title: 'Patient',
       dataIndex: 'patientId',
-      render: (patientId) =>
+      render: (patientId, log) =>
         patientId && (
-          <Button type="link" size="small" style={{ padding: 0 }} onClick={() => setActivityFor(patientId)}>
-            {patientId}
+          <Button type="link" style={{ padding: 0, height: 'auto', textAlign: 'left' }} onClick={() => setActivityFor(patientId)}>
+            <span>
+              <Typography.Text strong style={{ color: 'inherit' }}>
+                {log.patientName || 'Unknown patient'}
+              </Typography.Text>
+              <br />
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {patientId}
+              </Typography.Text>
+            </span>
           </Button>
         ),
     },
@@ -71,7 +80,7 @@ export default function AuditLogsPage() {
 
   return (
     <>
-      <PageHeader title="Audit Log" subtitle="Every view and change to patient records. Click a patient ID to see their full activity." />
+      <PageHeader title="Audit Log" subtitle="Every view and change to patient records. Click a patient to see their details and full activity." />
       {error && <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }}>
         <Table rowKey="_id" columns={columns} dataSource={logs} loading={loading} scroll={{ x: 'max-content' }} pagination={{ pageSize: 15, hideOnSinglePage: true }} />

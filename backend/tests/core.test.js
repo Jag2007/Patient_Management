@@ -123,11 +123,14 @@ describe('Audit log permissions', () => {
     expect(res.status).toBe(403);
   });
 
-  test('admin can read it, and it stores only the patient ID', async () => {
+  test('admin can read it; names are added for display but only the patient ID is stored', async () => {
     const res = await request(app).get('/api/audit-logs').set('Authorization', `Bearer ${adminToken}`);
     expect(res.status).toBe(200);
     expect(res.body.length).toBeGreaterThan(0);
-    expect(Object.keys(res.body[0])).not.toContain('name');
+    expect(res.body[0].patientName).toBe('Test Patient');
+
+    const stored = await AuditLog.findOne().lean();
+    expect(Object.keys(stored).sort()).toEqual(['__v', '_id', 'action', 'createdAt', 'patientId', 'username']);
   });
 });
 

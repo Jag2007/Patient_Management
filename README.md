@@ -182,7 +182,7 @@ Permissions are enforced in backend code. The frontend hides the Audit Log menu 
 | GET | `/api/appointments?patientId=` | admin, staff | List appointments |
 | POST | `/api/appointments` | admin, staff | Create an appointment |
 | PATCH | `/api/appointments/:id/cancel` | admin, staff | Cancel an appointment |
-| POST | `/api/chat` | admin, staff | Ask the AI assistant (rate limited) |
+| POST | `/api/chat` | admin, staff | Ask the AI assistant: `{ question, previousQuestions? }` (rate limited) |
 | GET | `/api/audit-logs?patientId=` | admin | View the audit log, or one patient's activity |
 
 ---
@@ -210,6 +210,7 @@ flowchart TD
 ```
 
 1. **Check the question.** It must be 1–500 characters. Questions asking for a diagnosis, treatment or medication dosage, and obvious prompt-injection phrases, are refused without calling the AI.
+   - **Follow-ups:** the browser also sends the user's last 3 questions so the AI can work out "her appointments" after "tell me about Ananya Rao". Only the user's own questions are accepted, never earlier AI answers (a client could fake those), and each one goes through the same length, character and safety checks.
 2. **Find relevant FAQ sections.** Common question words are removed, then MongoDB text search returns the top 3 matching paragraphs (labelled `S1`–`S3`).
 3. **Decide whether to call the AI.** If no FAQ section matches and the question doesn't mention a known patient name or ID, the user gets the fallback and **the AI is never called**.
 4. **Ask the AI.** It gets the question, today's date, the FAQ sections, and the tools its user is allowed to use. It must answer only from this data and reply in a fixed JSON format: `{ can_answer, answer, used_source_ids }`.
@@ -274,7 +275,7 @@ The AI never gets direct database access. Medical data such as lab values is not
 
 ## Bonus features
 
-**Audit log.** Viewing, creating or editing a patient, creating or cancelling an appointment, and every AI tool call are recorded with the username, action and patient ID. No other patient details are stored. Admins can filter the log by user or action, and click a patient ID (or "Activity" on the Patients page) to see that patient's full history as a timeline.
+**Audit log.** Viewing, creating or editing a patient, creating or cancelling an appointment, and every AI tool call are recorded with the username, action and patient ID. No other patient details are stored. When an admin reads the log, current patient names are looked up and added for display only. Admins can filter the log by user or action, and click a patient (or "Activity" on the Patients page) to see their details and full history as a timeline.
 
 **Safe cancellation.** The UI asks *"Are you sure?"* before cancelling. The backend cancels with a single atomic update that only matches appointments still `scheduled`:
 
@@ -293,7 +294,7 @@ cd backend
 npm test
 ```
 
-33 tests run against the separate `MONGO_URI_TEST` database. The AI tests replace Groq with a Jest mock, so they never call the real API. That also lets them simulate the model misbehaving.
+36 tests run against the separate `MONGO_URI_TEST` database. The AI tests replace Groq with a Jest mock, so they never call the real API. That also lets them simulate the model misbehaving.
 
 **Core API**
 - Correct login returns a token and role; requests without a token are rejected; wrong username and wrong password give the same error
@@ -315,6 +316,7 @@ npm test
 - A fake source (`S9`) or broken JSON from the model gives the fallback
 - A tool request is run and its source is shown; no appointments gives a fixed reply
 - The model is stopped after 2 tool rounds
+- A follow-up ("her appointments") uses earlier questions; without them it gets the fallback; unsafe or fake earlier messages are dropped
 - An empty question returns `400`; an AI timeout returns a friendly message
 
 ---
@@ -350,7 +352,7 @@ npm test
 | Limitation | Next step |
 |---|---|
 | Keyword search misses synonyms ("fees" vs "billing") | Add embedding-based search (e.g. Atlas Vector Search) |
-| No chat history or streaming responses | Store conversations per user; stream answers with server-sent events |
+| Chat is kept only in the browser tab (cleared on logout), and responses aren't streamed | Store conversations per user on the server; stream answers with server-sent events |
 | Safety filter is keyword-based and can be bypassed by rephrasing (the prompt and tool limits are the second line of defence) | Add a moderation model before the main call |
 | No check that numbers in an answer appear in the source text | Compare numbers in the answer against the retrieved text |
 | All staff can see all patients | Assign patients to clinicians and check ownership in services and tools |
