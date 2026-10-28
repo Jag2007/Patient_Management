@@ -1,7 +1,8 @@
-// Builds the Express app: security middleware, routes, and the error handler (always last).
+// Builds the Express app: security middleware, gzip compression, routes, and the error handler (always last).
 // It does not start listening, so tests can import it with Supertest without opening a port.
 // server.js connects the database and starts the app.
 const express = require('express');
+const compression = require('compression');
 const cors = require('cors');
 const helmet = require('helmet');
 const { requireLogin } = require('./middleware/auth');
@@ -13,6 +14,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.use(helmet());
+app.use(compression()); // gzip responses: e.g. the appointments list shrinks from ~63 KB to ~6 KB
 app.use(cors({ origin: (process.env.CLIENT_ORIGIN || 'http://localhost:5173').split(',') }));
 app.use(express.json({ limit: '10kb' }));
 

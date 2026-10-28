@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const httpError = require('../utils/httpError');
 const { logAccountAction } = require('./auditService');
+const { forgetAccount } = require('../middleware/auth');
 
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,30}$/;
 const PUBLIC_FIELDS = 'username role active lastLoginAt createdAt';
@@ -50,6 +51,7 @@ async function resetPassword(id, password, admin) {
   const user = await findStaff(id);
   user.passwordHash = await bcrypt.hash(checkPassword(password), 10);
   await user.save();
+  forgetAccount(user._id);
   await logAccountAction(admin, 'staff.reset_password', user.username);
 }
 
@@ -58,6 +60,7 @@ async function setActive(id, active, admin) {
   const user = await findStaff(id);
   user.active = active;
   await user.save();
+  forgetAccount(user._id);
   await logAccountAction(admin, active ? 'staff.enable' : 'staff.disable', user.username);
   return User.findById(user._id, PUBLIC_FIELDS).lean();
 }
@@ -65,6 +68,7 @@ async function setActive(id, active, admin) {
 async function deleteStaff(id, admin) {
   const user = await findStaff(id);
   await user.deleteOne();
+  forgetAccount(user._id);
   await logAccountAction(admin, 'staff.delete', user.username);
 }
 

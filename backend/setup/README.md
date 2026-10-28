@@ -8,7 +8,8 @@ setup/
 ├── migrations/
 │   ├── 001-initial-schema.js   # users, patients, appointments, audit_logs, faq_sections + indexes
 │   ├── 002-chat-history.js     # conversations (AI chat history) + index
-│   └── 003-staff-accounts.js   # users.active + users.lastLoginAt (staff management)
+│   ├── 003-staff-accounts.js   # users.active + users.lastLoginAt (staff management)
+│   └── 004-audit-log-indexes.js # audit_logs indexes for newest-first reads
 ├── seed.js                 # loads seed-data/ and the FAQ docs into the database
 └── seed-data/
     ├── users.json          # 2 demo logins (admin, staff)
@@ -68,7 +69,7 @@ mongosh "$MONGO_URI" --eval '
   })'
 ```
 
-Expected: 2 users, 150 patients, 198 appointments, 15 FAQ sections, 3 migrations.
+Expected: 2 users, 150 patients, 198 appointments, 15 FAQ sections, 4 migrations.
 
 Other useful commands:
 

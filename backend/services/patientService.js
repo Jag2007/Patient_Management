@@ -27,7 +27,7 @@ async function listPatients(search) {
   const filter = term
     ? { $or: [{ patientId: term.toUpperCase() }, { name: new RegExp(escapeRegex(term), 'i') }] }
     : {};
-  return Patient.find(filter).sort({ patientId: 1 }).limit(500);
+  return Patient.find(filter).sort({ patientId: 1 }).limit(500).lean(); // lean: plain objects, no Mongoose overhead
 }
 
 async function getPatient(patientId, user) {

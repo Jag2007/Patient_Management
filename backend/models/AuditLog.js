@@ -13,4 +13,8 @@ const auditLogSchema = new mongoose.Schema(
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
+// The log is always read newest first, either all of it or one patient's history.
+auditLogSchema.index({ createdAt: -1 });
+auditLogSchema.index({ patientId: 1, createdAt: -1 });
+
 module.exports = mongoose.model('AuditLog', auditLogSchema, 'audit_logs');

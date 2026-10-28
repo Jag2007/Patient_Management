@@ -22,14 +22,22 @@ function checkAppointmentDate(value) {
   return date;
 }
 
+// One database round trip: $lookup joins each appointment's patient (ID and name only) inside MongoDB,
+// instead of populate(), which needs a second query.
 async function listAppointments(patientId) {
-  const filter = {};
+  const match = {};
   if (patientId) {
-    const patient = await Patient.findOne({ patientId });
+    const patient = await Patient.findOne({ patientId }, '_id').lean();
     if (!patient) return [];
-    filter.patient = patient._id;
+    match.patient = patient._id;
   }
-  return Appointment.find(filter).populate('patient', 'patientId name').sort({ dateTime: -1 }).limit(500);
+  return Appointment.aggregate([
+    { $match: match },
+    { $sort: { dateTime: -1 } },
+    { $limit: 500 },
+    { $lookup: { from: 'patients', localField: 'patient', foreignField: '_id', as: 'patient', pipeline: [{ $project: { patientId: 1, name: 1 } }] } },
+    { $unwind: '$patient' },
+  ]);
 }
 
 async function createAppointment(body = {}, user) {

@@ -16,7 +16,8 @@ async function login(username, password) {
   if (!passwordOk) throw httpError(401, 'Invalid username or password');
   if (!user.active) throw httpError(403, 'This account has been disabled. Please contact an admin.');
 
-  await User.updateOne({ _id: user._id }, { lastLoginAt: new Date() });
+  // Not awaited: the user shouldn't wait for this bookkeeping write. A failure is only logged.
+  User.updateOne({ _id: user._id }, { lastLoginAt: new Date() }).catch((error) => console.error('lastLoginAt update failed:', error.message));
 
   const payload = { id: user._id, username: user.username, role: user.role };
   const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '8h' });
