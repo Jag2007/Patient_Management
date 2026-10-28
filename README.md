@@ -6,12 +6,35 @@ If the answer is not in that data, the assistant says so instead of guessing.
 
 > All data is synthetic. There is no diagnosis or treatment functionality.
 
+## Submission guide
+
+Where to find each item the assignment asks for. Every link jumps to the exact section or file.
+
+| Category | Asked for | Where it is |
+|---|---|---|
+| **Source code** | Source code in a Git repository | This repository · [Project structure](#project-structure) |
+| **Setup and run** | Setup instructions | [Prerequisites](#prerequisites) · [Run the app](#run-the-app) · [Demo logins](#demo-logins) |
+| | Environment variables | [Environment variables](#environment-variables) |
+| | Database setup | [Database setup](#database-setup) · step-by-step guide in [`backend/setup/README.md`](backend/setup/README.md) |
+| | Commands to run the application | [Run the app](#run-the-app) |
+| **Database** | Database schema or migrations | [Database](#database) (collections, fields, indexes) · migrations in [`backend/setup/migrations/`](backend/setup/migrations/) |
+| | Small synthetic seed dataset | [`backend/setup/seed-data/`](backend/setup/seed-data/) (150 patients: 100 Hyderabad, 50 Bangalore; 198 appointments) · [Clinic documents](#clinic-documents-the-ais-knowledge) |
+| **Configuration** | `.env.example` with variable names only, no real secrets | [`.env.example`](.env.example) · [`frontend/.env.example`](frontend/.env.example) |
+| **Architecture note** | The LLM | [Architecture note](#architecture-note-llm-retrieval-tools) · [LLM settings](#llm-settings-servicesllmservicejs-the-only-file-that-talks-to-groq) |
+| | Retrieval approach | [What happens when you ask a question](#what-happens-when-you-ask-a-question) · [Why keyword search](#why-keyword-search-instead-of-embeddings) |
+| | AI tool | [AI tools](#ai-tools) (the tool requirement, mapped point by point) |
+| **Quality** | A few tests | [Testing](#testing) · [`backend/tests/`](backend/tests/) · evaluation set in [`backend/eval/`](backend/eval/) |
+| | Known limitations or incomplete features | [Known limitations](#known-limitations) · [Bonus features](#bonus-features) (what was and wasn't done) |
+| **Extras** | Core requirements, one by one | [Assignment checklist](#assignment-checklist) |
+| | Security and permissions | [Roles and permissions](#roles-and-permissions) · [Safety](#safety) |
+
 ---
 
 ## Features
 
 - **Login** for clinic staff with two roles: `admin` and `staff`
-- **Patients:** create, view, edit, list, live search by name or patient ID, filters (age group, area, has email) and "Sort by" (ID, newest/oldest added, name A–Z/Z–A, age)
+- **Staff management (admin only):** admins create staff logins, reset passwords, disable/enable and delete them; staff can't see or call any of it
+- **Patients:** create, view, edit, list, live search by name or patient ID, filters (city, age group, area, has email) and "Sort by" (ID, newest/oldest added, name A–Z/Z–A, age)
 - **Appointments:** create, view, **edit** (date/time, clinician, reason), filter (status, clinician, date range, text search), "Sort by" (date, patient name, clinician), and cancel with an explicit, transaction-safe confirmation
 - **AI assistant:** answers from clinic FAQ documents and patient records, always shows its sources, and remembers the current chat (e.g. *"Which patient are we talking about?"*)
 - **AI tools:** `get_patient_appointments` and `get_patient_details`, which the AI can request and the backend checks before running
@@ -19,7 +42,7 @@ If the answer is not in that data, the assistant says so instead of guessing.
 - **Chat history:** every chat is saved per user and can be reopened or deleted
 - **Audit log:** records who viewed or changed which patient, with a per-patient activity timeline (admin only)
 - **Documents:** admins can read every clinic document the AI answers from, section by section
-- **Database setup:** migrations (collections, validation rules, indexes) and a synthetic seed dataset in `backend/setup/`
+- **Database setup:** migrations (collections, validation rules, indexes) and a synthetic seed dataset (150 patients across Hyderabad and Bangalore) in `backend/setup/`
 - **Evaluation set:** `npm run eval` checks answer correctness and source grounding against the real model
 
 ---
@@ -58,7 +81,7 @@ Patient_Management/
 ├── frontend/
 │   └── src/
 │       ├── api/         # one axios client for all backend calls + session storage
-│       ├── pages/       # Login, Patients, Appointments, AI Assistant, Documents, Audit Log
+│       ├── pages/       # Login, Patients, Appointments, AI Assistant, Documents, Audit Log, Staff
 │       ├── components/  # layout, forms, activity drawer
 │       └── theme.js     # colours and Ant Design theme
 ├── .env.example
@@ -96,13 +119,14 @@ Full step-by-step guide, including how to get a `MONGO_URI` from Atlas or a loca
 cd backend
 npm install
 npm run migrate   # create collections, validation rules and indexes (safe to run again)
-npm run seed      # load the synthetic dataset: 2 users, 100 patients, 135 appointments, 15 FAQ sections
+npm run seed      # load the synthetic dataset: 2 users, 150 patients, 198 appointments, 15 FAQ sections
 ```
 
 | Path | What it is |
 |---|---|
 | `backend/setup/migrations/001-initial-schema.js` | Collections with `$jsonSchema` validation rules and all indexes (incl. the text index the AI searches) |
 | `backend/setup/migrations/002-chat-history.js` | The `conversations` collection for chat history |
+| `backend/setup/migrations/003-staff-accounts.js` | `active` and `lastLoginAt` on users, for staff management |
 | `backend/setup/seed-data/*.json` | The synthetic seed dataset (users, patients, appointments) |
 | `backend/setup/seed.js` | Loads the dataset and splits `backend/docs/*.md` into FAQ sections |
 
@@ -201,8 +225,11 @@ Every request goes through the same four steps:
 | Use the AI assistant and its tools | ✅ | ✅ |
 | View the audit log and patient activity | ✅ | ❌ |
 | View the AI's documents | ✅ | ❌ |
+| Manage staff logins (create, reset password, disable, delete) | ✅ | ❌ |
 
-Permissions are enforced in backend code. The frontend hides the Documents and Audit Log menus for staff only for convenience; calling the API directly still returns `403`.
+Permissions are enforced in backend code. The frontend hides the Documents, Audit Log and Staff menus for staff only for convenience; calling the API directly still returns `403`.
+
+Every request also re-checks the account in the database: a disabled or deleted account is logged out on its next request, even with a token issued earlier. A disabled account that logs in with the right password gets *"This account has been disabled. Please contact an admin."* Admin accounts can't be changed from the Staff page, so an admin can't lock themselves out.
 
 ---
 
@@ -210,10 +237,10 @@ Permissions are enforced in backend code. The frontend hides the Documents and A
 
 | Collection | What it stores | Key fields |
 |---|---|---|
-| `users` | Clinic staff who can log in | `username`, `passwordHash`, `role` |
+| `users` | Clinic staff who can log in | `username`, `passwordHash`, `role`, `active`, `lastLoginAt` |
 | `patients` | Fictional patient records | `patientId` (e.g. `P-0001`), `name`, `dateOfBirth`, `phone`, `email`, `address` |
 | `appointments` | Appointments linked to a patient | `patient`, `dateTime`, `clinician`, `reason`, `status` |
-| `audit_logs` | Who did what to which patient | `username`, `action`, `patientId`, `createdAt` |
+| `audit_logs` | Who did what to which patient or staff account | `username`, `action`, `patientId` or `targetUsername`, `createdAt` |
 | `faq_sections` | Clinic FAQ documents split into paragraphs, searchable by the AI | `source`, `section`, `text` |
 | `conversations` | Saved AI chats, one per chat, owned by one user | `user`, `title`, `messages[] { role, text, sources, verified }` |
 | `migrations` | Which setup migrations have run | `name`, `appliedAt` |
@@ -244,6 +271,11 @@ Permissions are enforced in backend code. The frontend hides the Documents and A
 | GET | `/api/chat/conversations` | admin, staff | List your own saved chats |
 | GET | `/api/chat/conversations/:id` | admin, staff | Open one of your chats |
 | DELETE | `/api/chat/conversations/:id` | admin, staff | Delete one of your chats |
+| GET | `/api/users` | admin | List staff and admin accounts (never password hashes) |
+| POST | `/api/users` | admin | Create a staff login `{ username, password }` (always role `staff`) |
+| PUT | `/api/users/:id/password` | admin | Reset a staff password |
+| PATCH | `/api/users/:id/active` | admin | Disable or enable a staff login `{ active }` |
+| DELETE | `/api/users/:id` | admin | Delete a staff login |
 | GET | `/api/audit-logs?patientId=` | admin | View the audit log, or one patient's activity |
 | GET | `/api/documents` | admin | The AI's clinic documents, grouped by file and section |
 
@@ -425,7 +457,7 @@ cd backend
 npm test
 ```
 
-43 tests run against the separate `MONGO_URI_TEST` database. The AI tests replace Groq with a Jest mock, so they never call the real API. That also lets them simulate the model misbehaving.
+49 tests run against the separate `MONGO_URI_TEST` database. The AI tests replace Groq with a Jest mock, so they never call the real API. That also lets them simulate the model misbehaving.
 
 **Core API**
 - Correct login returns a token and role; requests without a token are rejected; wrong username and wrong password give the same error
@@ -436,6 +468,13 @@ npm test
 - Cancelling the same appointment twice fails the second time, with exactly one audit entry
 - Editing an appointment changes clinician/reason, ignores patient and status, and writes an audit entry; past dates, empty edits and editing a cancelled appointment are rejected
 - Staff get `403` on the audit log; admins can read the AI's documents grouped by file and staff get `403`; the log stores only patient IDs
+
+**Staff management**
+- Staff get `403` on every account endpoint
+- An admin-created staff login works, is always role `staff`, and the password hash is never returned
+- Weak passwords, bad usernames and duplicate usernames are rejected; admin accounts can't be changed
+- A disabled account can't log in and its existing token stops working; enabling restores access
+- Reset password replaces the old one; delete removes the login; every change is audited
 
 **AI tools**
 - A disallowed role, an unknown tool, a bad patient ID, extra arguments, both `patientId` and `name`, and non-JSON arguments are all rejected
