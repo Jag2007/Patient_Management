@@ -5,7 +5,8 @@ import { getToken, clearSession, saveSession } from './session';
 
 // Locally Vite proxies /api to the backend; when hosted (e.g. Vercel) VITE_API_BASE_URL points at it.
 // withCredentials lets the browser send the httpOnly refresh-token cookie.
-const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || '/api', timeout: 20000, withCredentials: true });
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const api = axios.create({ baseURL: API_BASE_URL, timeout: 20000, withCredentials: true });
 
 api.interceptors.request.use((config) => {
   const token = getToken();
@@ -16,7 +17,7 @@ api.interceptors.request.use((config) => {
 // If several requests expire at once they all wait for the same refresh call.
 let refreshing = null;
 
-function refreshSession() {
+export function refreshSession() {
   refreshing ??= api
     .post('/auth/refresh')
     .then(({ data }) => saveSession(data))

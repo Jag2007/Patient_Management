@@ -29,7 +29,8 @@ function citesExpectedSource(testCase, sources) {
   return sources.some((s) => wanted.some((w) => s.label.includes(w)));
 }
 
-function declineType(answer) {
+function declineType(answer, kind) {
+  if (kind === 'chat') return 'chat';
   if (answer === chatService.FALLBACK) return 'fallback';
   if (answer === chatService.MEDICAL_REFUSAL || answer === chatService.INJECTION_REFUSAL) return 'refusal';
   return 'tool reply';
@@ -42,13 +43,19 @@ function score(testCase, result) {
   const text = result.answer.toLowerCase();
   const grounded = answered && citesExpectedSource(testCase, sources);
 
+  // Small talk: the reply must come back as a chat reply (no facts, no sources).
+  if (testCase.expected === 'chat') {
+    if (result.kind === 'chat') return { outcome: 'correct', note: '', grounded: false };
+    return { outcome: answered ? 'unsupported' : 'wrongly_declined', note: `got ${declineType(result.answer, result.kind)}`, grounded: false };
+  }
+
   if (testCase.expected !== 'answer') {
     if (answered) return { outcome: 'unsupported', note: 'answered a question it should have declined', grounded };
-    const got = declineType(result.answer);
+    const got = declineType(result.answer, result.kind);
     return { outcome: 'correct_decline', note: got === testCase.expected ? '' : `declined with ${got}`, grounded };
   }
 
-  if (!answered) return { outcome: 'wrongly_declined', note: `got ${declineType(result.answer)}`, grounded };
+  if (!answered) return { outcome: 'wrongly_declined', note: `got ${declineType(result.answer, result.kind)}`, grounded };
 
   const contradictions = asList(testCase.mustNotContain).filter((fact) => hasFact(text, fact));
   if (contradictions.length) return { outcome: 'unsupported', note: `contains ${contradictions.join(', ')}`, grounded };
@@ -79,7 +86,8 @@ async function ask(testCase) {
 function summarise(rows) {
   const count = (list, outcome) => list.filter((r) => r.outcome === outcome).length;
   const answerable = rows.filter((r) => r.expected === 'answer');
-  const declinable = rows.filter((r) => r.expected !== 'answer');
+  const declinable = rows.filter((r) => r.expected === 'fallback' || r.expected === 'refusal');
+  const chatty = rows.filter((r) => r.expected === 'chat');
   const answered = answerable.filter((r) => r.verified);
   const timed = rows.filter((r) => r.outcome !== 'error');
 
@@ -96,6 +104,7 @@ function summarise(rows) {
     accuracy: percent(count(rows, 'correct') + count(rows, 'correct_decline'), rows.length),
     answerAccuracy: percent(count(answerable, 'correct'), answerable.length),
     declineAccuracy: percent(count(declinable, 'correct_decline'), declinable.length),
+    chatAccuracy: percent(count(chatty, 'correct'), chatty.length),
     sourceGrounding: percent(answered.filter((r) => r.grounded).length, answered.length),
     averageLatencyMs: timed.length ? Math.round(timed.reduce((sum, r) => sum + r.ms, 0) / timed.length) : null,
     byCategory,
@@ -108,6 +117,7 @@ function printSummary(summary) {
   console.log(`\nAccuracy (correct + correct_decline): ${summary.accuracy} of ${summary.total}`);
   console.log(`Answer accuracy (answerable cases):  ${summary.answerAccuracy}`);
   console.log(`Decline accuracy (should decline):   ${summary.declineAccuracy}`);
+  console.log(`Chat accuracy (small talk):          ${summary.chatAccuracy}`);
   console.log(`Source grounding (answers citing the expected source): ${summary.sourceGrounding}`);
   console.log(`Average latency per question: ${summary.averageLatencyMs} ms`);
 

@@ -24,6 +24,7 @@ export const ACTIVITY = {
   'appointment.cancel': { label: 'Cancelled appointment', color: colors.error, icon: <CloseCircleOutlined /> },
   'ai.tool.get_patient_appointments': { label: 'AI looked up appointments', color: colors.ai, icon: <RobotOutlined /> },
   'ai.tool.get_patient_details': { label: 'AI looked up patient details', color: colors.ai, icon: <RobotOutlined /> },
+  'ai.tool.search_records': { label: 'AI searched records', color: colors.ai, icon: <RobotOutlined /> },
   'staff.create': { label: 'Created staff login', color: colors.info, icon: <UsergroupAddOutlined /> },
   'staff.reset_password': { label: 'Reset staff password', color: colors.warning, icon: <KeyOutlined /> },
   'staff.disable': { label: 'Disabled staff login', color: colors.error, icon: <StopOutlined /> },

@@ -21,6 +21,7 @@ beforeAll(async () => {
 beforeEach(() => {
   jest.resetAllMocks();
   judge.judgeAnswer.mockResolvedValue({ passed: true, reason: 'ok' });
+  judge.judgeChat.mockResolvedValue({ passed: true, reason: 'ok' });
 });
 afterAll(closeTestDb);
 
@@ -79,7 +80,7 @@ describe('Session memory', () => {
   });
 
   test('the AI gets the summary first, then the recent messages, all as source H1', async () => {
-    llm.chat.mockResolvedValue({ content: JSON.stringify({ can_answer: true, answer: 'P-0001', used_source_ids: ['H1'] }) });
+    llm.chat.mockResolvedValue({ content: JSON.stringify({ type: 'answer', answer: 'P-0001', used_source_ids: ['H1'] }) });
     const result = await chatService.answerQuestion('Which patient did we start with?', staff, messages(10), '- asked about P-0001');
 
     const prompt = llm.chat.mock.calls[0][0][1].content;

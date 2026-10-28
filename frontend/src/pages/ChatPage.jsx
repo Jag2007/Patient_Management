@@ -1,10 +1,11 @@
-// AI Assistant page: sends questions to /api/chat and keeps the open chat in sessionStorage (chatStorage.js).
-// Past chats come from /api/chat/conversations and can be reopened or deleted.
+// AI Assistant page: streams answers from /api/chat/stream (status steps, then the words as they are written)
+// and keeps the open chat in sessionStorage. Past chats come from /api/chat/conversations and can be reopened or deleted.
 import { useEffect, useRef, useState } from 'react';
 import { Alert, App, Avatar, Button, Card, Input, Typography } from 'antd';
 import { MessageOutlined, PlusOutlined, SendOutlined } from '@ant-design/icons';
 import api, { errorMessage } from '../api/client';
 import { clearChat, loadChat, saveChat } from '../api/chatStorage';
+import { streamChat } from '../api/chatStream';
 import useApi from '../api/useApi';
 import PageHeader from '../components/PageHeader';
 import ChatHistory from '../components/ChatHistory';
@@ -12,11 +13,12 @@ import ChatMessage from '../components/ChatMessage';
 import { colors } from '../theme';
 
 const SUGGESTIONS = [
-  'What are your opening hours on Saturday?',
+  'What can you do?',
   'What is the late cancellation fee?',
-  'Which insurance partners do you work with?',
-  'Show appointments for P-0003',
   'Tell me about Priya Sharma',
+  'Show appointments for P-0003',
+  'How many scheduled appointments does Dr. Kavya Iyer have?',
+  'Which patients in Bangalore were born before 1961?',
 ];
 
 export default function ChatPage() {
@@ -24,6 +26,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState(() => loadChat().messages);
   const [question, setQuestion] = useState(() => loadChat().draft);
   const [loading, setLoading] = useState(false);
+  const [live, setLive] = useState(null); // the answer being streamed: { status, draft }
   const [error, setError] = useState('');
   const bottomRef = useRef(null);
   const { message } = App.useApp();
@@ -31,7 +34,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+  }, [messages, loading, live]);
 
   useEffect(() => {
     saveChat({ conversationId, messages, draft: question });
@@ -74,8 +77,16 @@ export default function ChatPage() {
     setQuestion('');
     setMessages((prev) => [...prev, { role: 'user', text: trimmed }]);
     setLoading(true);
+    setLive({ status: 'Thinking', draft: '' });
     try {
-      const { data } = await api.post('/chat', { question: trimmed, conversationId: conversationId || undefined });
+      const data = await streamChat(
+        { question: trimmed, conversationId: conversationId || undefined },
+        {
+          onStatus: (status) => setLive((prev) => ({ ...prev, status })),
+          onReset: () => setLive((prev) => ({ ...prev, draft: '' })),
+          onDraft: (text) => setLive((prev) => ({ ...prev, draft: prev.draft + text })),
+        }
+      );
       setConversationId(data.conversationId);
       setMessages((prev) => [...prev, { role: 'assistant', text: data.answer, sources: data.sources, verified: data.verified }]);
       loadConversations();
@@ -85,6 +96,7 @@ export default function ChatPage() {
       setQuestion(trimmed);
       setError(errorMessage(err));
     } finally {
+      setLive(null);
       setLoading(false);
     }
   }
@@ -93,7 +105,7 @@ export default function ChatPage() {
     <>
       <PageHeader
         title="AI Assistant"
-        subtitle="Answers come only from clinic documents and patient records. It does not give medical advice."
+        subtitle="Ask about the clinic, a patient, or search appointments and patients. Answers come only from clinic documents and records, and it gives no medical advice."
         actions={
           messages.length > 0 && (
             <Button icon={<PlusOutlined />} onClick={startNewChat} disabled={loading}>
@@ -123,20 +135,7 @@ export default function ChatPage() {
             {messages.map((message, index) => (
               <ChatMessage key={index} message={message} />
             ))}
-            {loading && (
-              <ChatMessage
-                message={{
-                  role: 'assistant',
-                  text: (
-                    <span className="typing" aria-label="Assistant is typing">
-                      <span />
-                      <span />
-                      <span />
-                    </span>
-                  ),
-                }}
-              />
-            )}
+            {live && <ChatMessage message={{ role: 'assistant', text: live.draft }} live={live} />}
             <div ref={bottomRef} />
           </div>
 

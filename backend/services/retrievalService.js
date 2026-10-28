@@ -5,7 +5,11 @@ const FaqSection = require('../models/FaqSection');
 const MAX_SECTIONS = 3;
 const MIN_SCORE = 0.5;
 // Common question words are dropped so they don't match unrelated paragraphs.
-const QUESTION_WORDS = new Set(['can', 'could', 'do', 'does', 'i', 'we', 'you', 'what', 'how', 'when', 'where', 'which', 'is', 'are', 'my', 'your', 'the', 'a', 'an']);
+const QUESTION_WORDS = new Set([
+  'can', 'could', 'do', 'does', 'i', 'we', 'you', 'what', 'how', 'when', 'where', 'which', 'is', 'are', 'my', 'your', 'the', 'a', 'an',
+  // Small talk: "hi" or "good morning" leaves no keywords, so the search is skipped entirely.
+  'hi', 'hello', 'hey', 'thanks', 'thank', 'good', 'morning', 'afternoon', 'evening', 'bye', 'please', 'ok', 'okay',
+]);
 
 function keywordsOf(question) {
   return question
@@ -29,4 +33,4 @@ async function findRelevantSections(question) {
     .map((result, index) => ({ id: `S${index + 1}`, source: result.source, section: result.section, text: result.text }));
 }
 
-module.exports = { findRelevantSections };
+module.exports = { findRelevantSections, keywordsOf };

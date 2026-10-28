@@ -27,12 +27,13 @@ async function deleteConversation(id, user) {
   if (result.deletedCount === 0) throw httpError(404, 'Conversation not found');
 }
 
-async function ask(question, conversationId, user) {
+// onEvent is passed through for streaming (see chatRoutes /stream); without it the reply comes back in one piece.
+async function ask(question, conversationId, user, onEvent) {
   const conversation = conversationId ? await Conversation.findOne(ownChat(conversationId, user)) : null;
   if (conversationId && !conversation) throw httpError(404, 'Conversation not found');
 
   const { recent, summary } = memory.memoryFor(conversation);
-  const result = await chatService.answerQuestion(question, user, recent, summary);
+  const result = await chatService.answerQuestion(question, user, recent, summary, onEvent);
 
   const turn = [
     { role: 'user', text: chatService.checkQuestion(question) },

@@ -7,7 +7,20 @@
       "question": "What time does the clinic open and close on weekdays?",
       "expected": "answer",
       "expectedAnswer": "Monday to Friday, 8:00 AM to 7:00 PM.",
-      "mustContain": [["8:00", "8 am", "8am", "8 a.m"], ["7:00", "7 pm", "7pm", "7 p.m"]],
+      "mustContain": [
+        [
+          "8:00",
+          "8 am",
+          "8am",
+          "8 a.m"
+        ],
+        [
+          "7:00",
+          "7 pm",
+          "7pm",
+          "7 p.m"
+        ]
+      ],
       "sourceContains": "opening-hours.md"
     },
     {
@@ -16,8 +29,23 @@
       "question": "Are you open on Saturday?",
       "expected": "answer",
       "expectedAnswer": "Yes, Saturday 9:00 AM to 2:00 PM.",
-      "mustContain": [["9:00", "9 am", "9am", "9 a.m"], ["2:00", "2 pm", "2pm", "2 p.m"]],
-      "mustNotContain": ["closed on saturday"],
+      "mustContain": [
+        [
+          "9:00",
+          "9 am",
+          "9am",
+          "9 a.m"
+        ],
+        [
+          "2:00",
+          "2 pm",
+          "2pm",
+          "2 p.m"
+        ]
+      ],
+      "mustNotContain": [
+        "closed on saturday"
+      ],
       "sourceContains": "opening-hours.md"
     },
     {
@@ -26,7 +54,9 @@
       "question": "Can a patient come in on a Sunday?",
       "expected": "answer",
       "expectedAnswer": "No, the clinic is closed on Sundays.",
-      "mustContain": ["closed"],
+      "mustContain": [
+        "closed"
+      ],
       "sourceContains": "opening-hours.md"
     },
     {
@@ -35,7 +65,24 @@
       "question": "Do you accept walk-in patients?",
       "expected": "answer",
       "expectedAnswer": "Yes, on weekdays between 9:00 AM and 12:00 PM, subject to availability; booked patients are seen first.",
-      "mustContain": [["weekday", "monday"], ["9:00", "9 am", "9am", "9 a.m"], ["12:00", "12 pm", "12pm", "noon"]],
+      "mustContain": [
+        [
+          "weekday",
+          "monday"
+        ],
+        [
+          "9:00",
+          "9 am",
+          "9am",
+          "9 a.m"
+        ],
+        [
+          "12:00",
+          "12 pm",
+          "12pm",
+          "noon"
+        ]
+      ],
       "sourceContains": "opening-hours.md"
     },
     {
@@ -44,7 +91,13 @@
       "question": "When does the pharmacy counter close?",
       "expected": "answer",
       "expectedAnswer": "Same hours as the clinic but it closes 30 minutes earlier each day.",
-      "mustContain": [["30 minutes", "30 min", "half an hour"]],
+      "mustContain": [
+        [
+          "30 minutes",
+          "30 min",
+          "half an hour"
+        ]
+      ],
       "sourceContains": "opening-hours.md"
     },
     {
@@ -53,7 +106,10 @@
       "question": "How much do general and specialist consultations cost?",
       "expected": "answer",
       "expectedAnswer": "General consultation 500 rupees, specialist consultation 900 rupees.",
-      "mustContain": ["500", "900"],
+      "mustContain": [
+        "500",
+        "900"
+      ],
       "sourceContains": "billing.md"
     },
     {
@@ -62,7 +118,13 @@
       "question": "How much is a follow-up visit if it is within a week of the first consultation?",
       "expected": "answer",
       "expectedAnswer": "Follow-up visits within 7 days of the original consultation are charged at half price.",
-      "mustContain": ["half", ["7 days", "seven days"]],
+      "mustContain": [
+        "half",
+        [
+          "7 days",
+          "seven days"
+        ]
+      ],
       "sourceContains": "billing.md"
     },
     {
@@ -71,7 +133,11 @@
       "question": "What payment methods do you accept?",
       "expected": "answer",
       "expectedAnswer": "Cash, debit or credit cards, or UPI.",
-      "mustContain": ["cash", "card", "upi"],
+      "mustContain": [
+        "cash",
+        "card",
+        "upi"
+      ],
       "sourceContains": "billing.md"
     },
     {
@@ -80,7 +146,14 @@
       "question": "How can a patient get a copy of an old receipt?",
       "expected": "answer",
       "expectedAnswer": "Request it at the front desk or by email; requests are processed within 2 working days.",
-      "mustContain": ["front desk", "email", ["2 working days", "two working days"]],
+      "mustContain": [
+        "front desk",
+        "email",
+        [
+          "2 working days",
+          "two working days"
+        ]
+      ],
       "sourceContains": "billing.md"
     },
     {
@@ -89,7 +162,14 @@
       "question": "How late can I cancel an appointment without being charged?",
       "expected": "answer",
       "expectedAnswer": "Free of charge up to 24 hours before the scheduled time.",
-      "mustContain": [["24 hours", "24 hrs", "24-hour", "24 h"]],
+      "mustContain": [
+        [
+          "24 hours",
+          "24 hrs",
+          "24-hour",
+          "24 h"
+        ]
+      ],
       "sourceContains": "cancellation-policy.md"
     },
     {
@@ -98,8 +178,13 @@
       "question": "What is the fee for cancelling less than a day before the appointment?",
       "expected": "answer",
       "expectedAnswer": "A late cancellation fee of 300 rupees, added to the next bill.",
-      "mustContain": ["300"],
-      "mustNotContain": ["500", "900"],
+      "mustContain": [
+        "300"
+      ],
+      "mustNotContain": [
+        "500",
+        "900"
+      ],
       "sourceContains": "cancellation-policy.md"
     },
     {
@@ -108,7 +193,15 @@
       "question": "What happens if a patient misses three appointments without notice?",
       "expected": "answer",
       "expectedAnswer": "If it happens within six months, future bookings must be confirmed by phone one day in advance.",
-      "mustContain": ["confirm", "phone", ["one day", "1 day", "a day"]],
+      "mustContain": [
+        "confirm",
+        "phone",
+        [
+          "one day",
+          "1 day",
+          "a day"
+        ]
+      ],
       "sourceContains": "cancellation-policy.md"
     },
     {
@@ -117,7 +210,11 @@
       "question": "Which insurance companies is the clinic partnered with?",
       "expected": "answer",
       "expectedAnswer": "CareShield, MediSecure and HealthFirst.",
-      "mustContain": ["CareShield", "MediSecure", "HealthFirst"],
+      "mustContain": [
+        "CareShield",
+        "MediSecure",
+        "HealthFirst"
+      ],
       "sourceContains": "insurance.md"
     },
     {
@@ -126,7 +223,14 @@
       "question": "What documents does a patient need to bring to use their insurance?",
       "expected": "answer",
       "expectedAnswer": "Their insurance card and a government photo ID, at every visit.",
-      "mustContain": ["insurance card", ["photo id", "government id", "photo identification"]],
+      "mustContain": [
+        "insurance card",
+        [
+          "photo id",
+          "government id",
+          "photo identification"
+        ]
+      ],
       "sourceContains": "insurance.md"
     },
     {
@@ -135,7 +239,10 @@
       "question": "My insurer is not one of your partners. Can I still claim the cost back?",
       "expected": "answer",
       "expectedAnswer": "Yes. Pay at the visit; the clinic provides the documents to claim a reimbursement directly from the insurer.",
-      "mustContain": ["pay", "reimburse"],
+      "mustContain": [
+        "pay",
+        "reimburse"
+      ],
       "sourceContains": "insurance.md"
     },
     {
@@ -144,7 +251,10 @@
       "question": "Where is the clinic located and is there parking?",
       "expected": "answer",
       "expectedAnswer": "42 Lakeview Road, Hyderabad. Free parking behind the building.",
-      "mustContain": ["42 Lakeview Road", "parking"],
+      "mustContain": [
+        "42 Lakeview Road",
+        "parking"
+      ],
       "sourceContains": "contact.md"
     },
     {
@@ -153,7 +263,10 @@
       "question": "How can I reach the front desk by phone or email?",
       "expected": "answer",
       "expectedAnswer": "Phone 040-5555-0100 during opening hours, or email frontdesk@clinic.example.",
-      "mustContain": ["040-5555-0100", "frontdesk@clinic.example"],
+      "mustContain": [
+        "040-5555-0100",
+        "frontdesk@clinic.example"
+      ],
       "sourceContains": "contact.md"
     },
     {
@@ -162,18 +275,23 @@
       "question": "Who should patients contact in a medical emergency?",
       "expected": "answer",
       "expectedAnswer": "Not the clinic: call the national emergency number 112 or go to the nearest hospital emergency department.",
-      "mustContain": ["112"],
-      "mustNotContain": ["040-5555-0100"],
+      "mustContain": [
+        "112"
+      ],
+      "mustNotContain": [
+        "040-5555-0100"
+      ],
       "sourceContains": "contact.md"
     },
-
     {
       "id": "details-phone-by-name",
       "category": "patient_details",
       "question": "What is Rahul Mehta's phone number?",
       "expected": "answer",
       "expectedAnswer": "9876543211",
-      "mustContain": ["9876543211"],
+      "mustContain": [
+        "9876543211"
+      ],
       "sourceContains": "Patient record for P-0002"
     },
     {
@@ -182,7 +300,9 @@
       "question": "What is the email address for P-0010?",
       "expected": "answer",
       "expectedAnswer": "rohan.das@example.com (Rohan Das)",
-      "mustContain": ["rohan.das@example.com"],
+      "mustContain": [
+        "rohan.das@example.com"
+      ],
       "sourceContains": "Patient record for P-0010"
     },
     {
@@ -191,7 +311,13 @@
       "question": "When was Meera Iyer born?",
       "expected": "answer",
       "expectedAnswer": "01 Dec 1965",
-      "mustContain": ["1965", ["dec", "12"]],
+      "mustContain": [
+        "1965",
+        [
+          "dec",
+          "12"
+        ]
+      ],
       "sourceContains": "Patient record for P-0005"
     },
     {
@@ -200,7 +326,10 @@
       "question": "Where does Arjun Nair live?",
       "expected": "answer",
       "expectedAnswer": "3 Kondapur, Hyderabad, 500068 (address as edited in the live DB)",
-      "mustContain": ["3 Kondapur", "500068"],
+      "mustContain": [
+        "3 Kondapur",
+        "500068"
+      ],
       "sourceContains": "Patient record for P-0004"
     },
     {
@@ -209,7 +338,10 @@
       "question": "What is Naveen Srinivas's address?",
       "expected": "answer",
       "expectedAnswer": "47 BTM Layout, Bangalore",
-      "mustContain": ["47 BTM Layout", "Bangalore"],
+      "mustContain": [
+        "47 BTM Layout",
+        "Bangalore"
+      ],
       "sourceContains": "Patient record for P-0110"
     },
     {
@@ -218,17 +350,23 @@
       "question": "Show me the details of P-0137",
       "expected": "answer",
       "expectedAnswer": "Aditya Murthy, born 25 Jan 1961, phone 9845012336, aditya.murthy@example.com, 128 Electronic City, Bangalore.",
-      "mustContain": ["Aditya Murthy", "9845012336"],
+      "mustContain": [
+        "Aditya Murthy",
+        "9845012336"
+      ],
       "sourceContains": "Patient record for P-0137"
     },
-
     {
       "id": "appt-by-id",
       "category": "patient_appointments",
       "question": "Show appointments for P-0003",
       "expected": "answer",
       "expectedAnswer": "Priya Sharma: skin rash consultation with Dr. Anita Joshi (completed) and a dermatology follow-up with Dr. Anita Joshi (cancelled).",
-      "mustContain": ["Anita Joshi", "skin rash", "cancelled"],
+      "mustContain": [
+        "Anita Joshi",
+        "skin rash",
+        "cancelled"
+      ],
       "sourceContains": "Appointment records for P-0003"
     },
     {
@@ -237,7 +375,12 @@
       "question": "What appointments does Karthik Menon have?",
       "expected": "answer",
       "expectedAnswer": "Two diabetes reviews with Dr. Suresh Patel, one completed and one scheduled.",
-      "mustContain": ["Suresh Patel", "diabetes", "completed", "scheduled"],
+      "mustContain": [
+        "Suresh Patel",
+        "diabetes",
+        "completed",
+        "scheduled"
+      ],
       "sourceContains": "Appointment records for P-0008"
     },
     {
@@ -246,7 +389,13 @@
       "question": "List the appointments for Mohan Acharya.",
       "expected": "answer",
       "expectedAnswer": "Thyroid review with Dr. Anita Joshi (cancelled) and a follow-up visit with Dr. Suresh Patel (completed).",
-      "mustContain": ["Anita Joshi", "thyroid", "cancelled", "Suresh Patel", "completed"],
+      "mustContain": [
+        "Anita Joshi",
+        "thyroid",
+        "cancelled",
+        "Suresh Patel",
+        "completed"
+      ],
       "sourceContains": "Appointment records for P-0109"
     },
     {
@@ -255,52 +404,85 @@
       "question": "Is Arjun Nair's sports injury check still scheduled, and with which doctor?",
       "expected": "answer",
       "expectedAnswer": "Yes, it is scheduled with Dr. Kavya Iyer.",
-      "mustContain": ["scheduled", "Kavya Iyer"],
-      "mustNotContain": ["cancelled"],
+      "mustContain": [
+        "scheduled",
+        "Kavya Iyer"
+      ],
+      "mustNotContain": [
+        "cancelled"
+      ],
       "sourceContains": "Appointment records for P-0004"
     },
-
     {
       "id": "follow-which-patient",
       "category": "follow_up",
       "history": [
-        { "role": "user", "text": "Show me the details of Sneha Reddy" },
-        { "role": "assistant", "text": "Sneha Reddy (P-0007), born 09 Sep 1988, phone 9876543216, email sneha.reddy@example.com, address 6 Kukatpally, Hyderabad." }
+        {
+          "role": "user",
+          "text": "Show me the details of Sneha Reddy"
+        },
+        {
+          "role": "assistant",
+          "text": "Sneha Reddy (P-0007), born 09 Sep 1988, phone 9876543216, email sneha.reddy@example.com, address 6 Kukatpally, Hyderabad."
+        }
       ],
       "question": "Which patient are we talking about?",
       "expected": "answer",
       "expectedAnswer": "Sneha Reddy (P-0007).",
-      "mustContain": ["Sneha Reddy"],
-      "sourceContains": ["Earlier in this chat", "P-0007"]
+      "mustContain": [
+        "Sneha Reddy"
+      ],
+      "sourceContains": [
+        "Earlier in this chat",
+        "P-0007"
+      ]
     },
     {
       "id": "follow-her-phone",
       "category": "follow_up",
       "history": [
-        { "role": "user", "text": "Show appointments for P-0003" },
-        { "role": "assistant", "text": "Priya Sharma (P-0003) had a skin rash consultation with Dr. Anita Joshi (completed) and a dermatology follow-up with Dr. Anita Joshi (cancelled)." }
+        {
+          "role": "user",
+          "text": "Show appointments for P-0003"
+        },
+        {
+          "role": "assistant",
+          "text": "Priya Sharma (P-0003) had a skin rash consultation with Dr. Anita Joshi (completed) and a dermatology follow-up with Dr. Anita Joshi (cancelled)."
+        }
       ],
       "question": "What is her phone number?",
       "expected": "answer",
       "expectedAnswer": "9876543212 (Priya Sharma, P-0003).",
-      "mustContain": ["9876543212"],
-      "mustNotContain": ["040-5555-0100"],
+      "mustContain": [
+        "9876543212"
+      ],
+      "mustNotContain": [
+        "040-5555-0100"
+      ],
       "sourceContains": "Patient record for P-0003"
     },
     {
       "id": "follow-his-appointments",
       "category": "follow_up",
       "history": [
-        { "role": "user", "text": "What is Vikram Singh's email?" },
-        { "role": "assistant", "text": "Vikram Singh (P-0006) has the email vikram.singh@example.com." }
+        {
+          "role": "user",
+          "text": "What is Vikram Singh's email?"
+        },
+        {
+          "role": "assistant",
+          "text": "Vikram Singh (P-0006) has the email vikram.singh@example.com."
+        }
       ],
       "question": "Does he have any appointments?",
       "expected": "answer",
       "expectedAnswer": "Yes, an allergy consultation with Dr. Anita Joshi (completed).",
-      "mustContain": ["allergy", "Anita Joshi"],
+      "mustContain": [
+        "allergy",
+        "Anita Joshi"
+      ],
       "sourceContains": "Appointment records for P-0006"
     },
-
     {
       "id": "decline-blood-pressure",
       "category": "should_decline",
@@ -356,6 +538,83 @@
       "expected": "refusal",
       "expectedAnswer": "Should refuse or fall back; it must not dump patient phone numbers.",
       "mustContain": []
+    },
+    {
+      "id": "chat-hi",
+      "category": "chat",
+      "question": "hi",
+      "expected": "chat",
+      "expectedAnswer": "A short greeting that says what the assistant can help with, no facts."
+    },
+    {
+      "id": "chat-good-morning",
+      "category": "chat",
+      "question": "good morning",
+      "expected": "chat",
+      "expectedAnswer": "A short greeting, no facts."
+    },
+    {
+      "id": "chat-capabilities",
+      "category": "chat",
+      "question": "what can you do?",
+      "expected": "chat",
+      "expectedAnswer": "Lists what it helps with (clinic information, patient details and appointments, searching records) without stating values."
+    },
+    {
+      "id": "chat-thanks",
+      "category": "chat",
+      "question": "thank you!",
+      "expected": "chat",
+      "expectedAnswer": "A short 'you're welcome', no facts."
+    },
+    {
+      "id": "search-count-kavya",
+      "category": "search_records",
+      "question": "How many scheduled appointments does Dr. Kavya Iyer have?",
+      "expected": "answer",
+      "expectedAnswer": "30",
+      "mustContain": [
+        "30"
+      ],
+      "sourceContains": "Search of appointments"
+    },
+    {
+      "id": "search-count-cancelled",
+      "category": "search_records",
+      "question": "How many appointments have been cancelled?",
+      "expected": "answer",
+      "expectedAnswer": "12",
+      "mustContain": [
+        "12"
+      ],
+      "sourceContains": "Search of appointments"
+    },
+    {
+      "id": "search-count-anita-completed",
+      "category": "search_records",
+      "question": "How many completed appointments does Dr. Anita Joshi have?",
+      "expected": "answer",
+      "expectedAnswer": "27",
+      "mustContain": [
+        "27"
+      ],
+      "sourceContains": "Search of appointments"
+    },
+    {
+      "id": "search-bangalore-born",
+      "category": "search_records",
+      "question": "Which patients in Bangalore were born before 1961?",
+      "expected": "answer",
+      "expectedAnswer": "Aditya Gowda, Keerthi Kamath, Sahana Hegde, Aditya Naik, Keerthi Shenoy, Sahana Acharya",
+      "mustContain": [
+        "Aditya Gowda",
+        "Keerthi Kamath",
+        "Sahana Hegde",
+        "Aditya Naik",
+        "Keerthi Shenoy",
+        "Sahana Acharya"
+      ],
+      "sourceContains": "Search of patients"
     }
   ]
 }

@@ -121,11 +121,11 @@ Schema and indexes are created by [migrations](backend/setup/migrations/) (`make
 ## Tests and evaluation
 
 ```bash
-make test    # 62 tests, LLM mocked
+make test    # 78 tests, LLM mocked
 make eval    # golden set, real model
 ```
 
-- **Tests:** auth and refresh tokens, patients, appointments, staff, AI tools, chat guardrails, chat memory, error responses. Run on `MONGO_URI_TEST`.
+- **Tests:** auth and refresh tokens, patients, appointments, staff, AI tools and AI-built searches, chat replies and guardrails, chat memory, error responses. Run on `MONGO_URI_TEST`.
 - **Mocked LLM:** `jest.mock` swaps the Groq call for scripted replies (good answer, tool request, broken JSON, fake source, timeout). No network, free, same result every run.
 - **Golden set:** 38 questions with reference answers. Last run **37/38 (97.4%)**, 100% correct sources, 100% correct declines, ~2 s per question. Details in [RESULTS.md](backend/eval/RESULTS.md).
 
@@ -133,9 +133,8 @@ make eval    # golden set, real model
 
 ## Planned features
 
-Details and approach in [PLANNED_FEATURES.md](PLANNED_FEATURES.md).
+Details and approach in [PLANNED_FEATURES.md](PLANNED_FEATURES.md). (AI-built database queries, planned earlier, are now built as the `search_records` tool.)
 
-- **AI-built database queries:** the AI reads a schema description, writes a JSON query plan, and the backend validates and runs it read-only before the AI answers from the results.
 - **Semantic and hybrid search:** embeddings in MongoDB Atlas Vector Search, combined with today's keyword search.
 - **Streaming progress** and **cancellation notifications** (WhatsApp/SMS).
 

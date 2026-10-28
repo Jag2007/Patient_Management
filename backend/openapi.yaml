@@ -170,7 +170,7 @@ paths:
     post:
       tags: [AI Assistant]
       summary: Ask the AI assistant
-      description: Leave out conversationId to start a new chat. 20 questions per minute per user.
+      description: Leave out conversationId to start a new chat. 20 questions per minute per user. kind is answer (checked, with sources), chat (greetings and small talk, no facts), fallback, refusal or notice.
       requestBody:
         required: true
         content:
@@ -188,6 +188,7 @@ paths:
             application/json:
               example:
                 answer: The late cancellation fee is 300 rupees.
+                kind: answer
                 sources: [{ id: S1, label: cancellation-policy.md (section 2) }]
                 verified: true
                 conversationId: 6ae1f5c6a54d4e5db35473ef

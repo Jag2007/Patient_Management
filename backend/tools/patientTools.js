@@ -1,17 +1,13 @@
-// The patient tools the AI can ask for. The model only asks: runTool checks the role and arguments,
-// finds the patient, writes an audit entry and runs one fixed read-only query.
+// The tools the AI can ask for: two single-patient lookups and search_records (lists and counts).
+// The model only asks: runTool checks the role and arguments, writes an audit entry and runs a read-only query we build.
 const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
 const escapeRegex = require('../utils/escapeRegex');
+const formatDate = require('../utils/formatDate');
+const searchRecords = require('./searchRecords');
 const { logAction } = require('../services/auditService');
 
 const NO_APPOINTMENTS = 'No appointments found for that patient.';
-
-function formatDate(date, withTime) {
-  const options = { day: '2-digit', month: 'short', year: 'numeric' };
-  if (withTime) Object.assign(options, { hour: '2-digit', minute: '2-digit' });
-  return date.toLocaleString('en-GB', options);
-}
 
 const TOOLS = {
   get_patient_appointments: {
@@ -52,6 +48,8 @@ const TOOLS = {
     },
     emptyReply: () => null,
   },
+
+  search_records: searchRecords,
 };
 
 const PATIENT_ARGUMENTS = {
@@ -70,17 +68,22 @@ function canUseTool(user, toolName) {
 function allowedDefinitions(user) {
   return Object.entries(TOOLS)
     .filter(([name]) => canUseTool(user, name))
-    .map(([name, tool]) => ({ type: 'function', function: { name, description: tool.description, parameters: PATIENT_ARGUMENTS } }));
+    .map(([name, tool]) => ({ type: 'function', function: { name, description: tool.description, parameters: tool.parameters || PATIENT_ARGUMENTS } }));
 }
 
-function parseArguments(rawArguments) {
-  let args;
+function readJson(rawArguments) {
   try {
-    args = typeof rawArguments === 'string' ? JSON.parse(rawArguments) : rawArguments;
+    const args = typeof rawArguments === 'string' ? JSON.parse(rawArguments) : rawArguments;
+    return args && typeof args === 'object' && !Array.isArray(args) ? args : { error: 'Tool arguments must be an object' };
   } catch {
     return { error: 'Tool arguments are not valid JSON' };
   }
-  if (!args || typeof args !== 'object' || Array.isArray(args)) return { error: 'Tool arguments must be an object' };
+}
+
+// The two patient tools take exactly one argument: patientId or name.
+function parseArguments(rawArguments) {
+  const args = readJson(rawArguments);
+  if (args.error) return args;
 
   const keys = Object.keys(args);
   if (keys.length !== 1 || !['patientId', 'name'].includes(keys[0])) {
@@ -104,6 +107,14 @@ async function runTool(toolName, rawArguments, user) {
   const tool = TOOLS[toolName];
   if (!tool) return { reply: 'Unknown tool' };
   if (!canUseTool(user, toolName)) return { reply: 'You do not have permission to use this tool' };
+
+  if (toolName === 'search_records') {
+    const json = readJson(rawArguments);
+    const search = json.error ? json : tool.parseArguments(json);
+    if (search.error) return { reply: `I couldn't run that search: ${search.error}.` };
+    await logAction(user, 'ai.tool.search_records');
+    return { data: await tool.run(search), sourceLabel: tool.sourceLabel(search) };
+  }
 
   const args = parseArguments(rawArguments);
   if (args.error) return { reply: args.error };

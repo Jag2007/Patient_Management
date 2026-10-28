@@ -227,3 +227,50 @@ describe('LLM judge verdict parsing', () => {
     expect(judgeService.parseVerdict('{"grounded": "yes"}')).toBeNull();
   });
 });
+
+describe('LLM error recovery', () => {
+  const llmService = require('../services/llmService');
+  const tools = [{ type: 'function', function: { name: 'get_patient_details' } }];
+  const toolUseFailed = (generation) => ({ error: { error: { code: 'tool_use_failed', failed_generation: JSON.stringify(generation) } } });
+
+  test('uses the reply the model wrapped in a made-up "json" tool, but never a real tool call', () => {
+    const reply = { type: 'chat', answer: 'Hello!', used_source_ids: [] };
+    expect(llmService.recoverReply(toolUseFailed({ name: 'json', arguments: reply }), tools)).toEqual({ role: 'assistant', content: JSON.stringify(reply) });
+    expect(llmService.recoverReply(toolUseFailed({ name: 'get_patient_details', arguments: { foo: 1 } }), tools)).toBeNull();
+    expect(llmService.recoverReply({ status: 500 }, tools)).toBeNull();
+  });
+
+  test('retries a rate limit only when Groq asks for a short wait', () => {
+    expect(llmService.retryAfterSeconds({ headers: { 'retry-after': '6' } })).toBe(6);
+    expect(llmService.retryAfterSeconds({ headers: new Headers({ 'retry-after': '3' }) })).toBe(3);
+    expect(llmService.retryAfterSeconds({ headers: { 'retry-after': '60' } })).toBeNull();
+    expect(llmService.retryAfterSeconds({})).toBeNull();
+    expect(llmService.retryAfterSeconds({ headers: new Headers() })).toBeNull();
+  });
+});
+
+describe('Streaming helpers', () => {
+  const { collectStream } = require('../services/llmService');
+  const createAnswerStream = require('../utils/answerStream');
+
+  test('createAnswerStream passes on only the answer text, decoded, however the JSON is split', () => {
+    const pieces = [];
+    const feed = createAnswerStream((text) => pieces.push(text));
+    const json = JSON.stringify({ type: 'answer', answer: 'Fee: 300 "rupees"\nPaid at the desk ✓', used_source_ids: ['S1'] });
+    for (let i = 0; i < json.length; i += 2) feed(json.slice(i, i + 2));
+    expect(pieces.join('')).toBe('Fee: 300 "rupees"\nPaid at the desk ✓');
+  });
+
+  test('collectStream joins text chunks and tool-call pieces back into one message', async () => {
+    async function* fakeStream() {
+      yield { choices: [{ delta: { content: '{"type":' } }] };
+      yield { choices: [{ delta: { tool_calls: [{ index: 0, id: 'call_1', function: { name: 'get_patient_details', arguments: '{"patient' } }] } }] };
+      yield { choices: [{ delta: { tool_calls: [{ index: 0, function: { arguments: 'Id":"P-0001"}' } }] } }] };
+      yield { choices: [{ delta: {} }] };
+    }
+    const seen = [];
+    const message = await collectStream(fakeStream(), (text) => seen.push(text));
+    expect(seen).toEqual(['{"type":']);
+    expect(message.tool_calls).toEqual([{ id: 'call_1', type: 'function', function: { name: 'get_patient_details', arguments: '{"patientId":"P-0001"}' } }]);
+  });
+});
