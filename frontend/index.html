@@ -3,12 +3,90 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#14352D" />
     <title>Patient Management</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!--
+      Opening gate: the first thing you see when you open the site. It lives here in index.html (not in React)
+      so it paints instantly, before any JavaScript downloads, and the app loads behind it.
+      Sequence: the logo slowly rises in, a heartbeat line draws under it, the name fades up,
+      then the logo fades away and the two doors slide apart to reveal the app. The doors only open once the app has rendered
+      (main.jsx fires "app:ready"), so the gate hides loading time instead of adding to it.
+      Shown once per browser tab session; click, Enter or Escape skips it; reduced-motion users get a short fade.
+    -->
+    <style>
+      #gate { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; overflow: hidden; font-family: Manrope, -apple-system, 'Segoe UI', Roboto, sans-serif; cursor: pointer; }
+      #gate .door { position: absolute; top: 0; bottom: 0; width: 50.5%; background: #14352d; transition: transform 1.3s cubic-bezier(0.77, 0, 0.18, 1) 0.45s; }
+      #gate .door.left { left: 0; background: linear-gradient(90deg, #102b24, #14352d); }
+      #gate .door.right { right: 0; background: linear-gradient(270deg, #102b24, #14352d); }
+      #gate .stage { position: relative; display: flex; flex-direction: column; align-items: center; transition: opacity 0.5s ease, transform 0.6s ease; }
+      #gate .mark { width: 96px; height: 96px; border-radius: 28px; background: #c0704a; display: grid; place-items: center; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35); opacity: 0; transform: translateY(18px) scale(0.6); animation: gate-pop 1.5s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards, gate-beat 2.4s ease-in-out 1.9s infinite; }
+      #gate .ecg { width: 260px; height: 50px; margin-top: 26px; }
+      #gate .ecg path { fill: none; stroke: #c0704a; stroke-width: 2.5; stroke-linecap: butt; stroke-linejoin: round; stroke-dasharray: 420; stroke-dashoffset: 420; opacity: 0; animation: gate-draw 1.6s ease-in-out 1s forwards; }
+      #gate .name { margin-top: 18px; color: #fff; font-size: 26px; font-weight: 700; letter-spacing: 0.01em; opacity: 0; transform: translateY(10px); animation: gate-rise 1s ease-out 1.5s forwards; }
+      #gate .tagline { margin-top: 6px; color: rgba(255, 255, 255, 0.6); font-size: 14px; opacity: 0; transform: translateY(10px); animation: gate-rise 1s ease-out 1.8s forwards; }
+      #gate.open .door.left { transform: translateX(-100%); }
+      #gate.open .door.right { transform: translateX(100%); }
+      #gate.open .stage { opacity: 0; transform: scale(0.94); }
+      @keyframes gate-pop { to { opacity: 1; transform: translateY(0) scale(1); } }
+      @keyframes gate-beat { 0%, 100% { transform: scale(1); } 12% { transform: scale(1.06); } 24% { transform: scale(1); } }
+      @keyframes gate-draw { from { opacity: 1; } to { stroke-dashoffset: 0; opacity: 1; } }
+      @keyframes gate-rise { to { opacity: 1; transform: translateY(0); } }
+      @media (prefers-reduced-motion: reduce) {
+        #gate .mark, #gate .name, #gate .tagline, #gate .ecg path { animation: none; opacity: 1; transform: none; stroke-dashoffset: 0; }
+        #gate .door, #gate .stage { transition: opacity 0.4s ease; transition-delay: 0s; }
+        #gate.open .door { transform: none; opacity: 0; }
+      }
+    </style>
   </head>
   <body>
+    <div id="gate" role="presentation" aria-hidden="true">
+      <div class="door left"></div>
+      <div class="door right"></div>
+      <div class="stage">
+        <div class="mark">
+          <svg width="48" height="48" viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" fill="#fff" /></svg>
+        </div>
+        <svg class="ecg" viewBox="0 0 260 50"><path d="M0 25 H80 L92 25 L100 8 L112 42 L121 16 L129 25 H260" /></svg>
+        <div class="name">Patient Management</div>
+        <div class="tagline">Clinic staff portal</div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var gate = document.getElementById('gate');
+        var seen = false;
+        try {
+          seen = sessionStorage.getItem('gateSeen') === '1';
+          sessionStorage.setItem('gateSeen', '1');
+        } catch (e) {}
+        if (seen) return gate.remove();
+
+        var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var minTimeUp = false;
+        var appReady = false;
+        var opened = false;
+
+        function open() {
+          if (opened) return;
+          opened = true;
+          gate.classList.add('open');
+          setTimeout(function () { gate.remove(); }, reducedMotion ? 450 : 1800);
+        }
+        function maybeOpen() {
+          if (minTimeUp && appReady) open();
+        }
+
+        setTimeout(function () { minTimeUp = true; maybeOpen(); }, reducedMotion ? 400 : 3000);
+        window.addEventListener('app:ready', function () { appReady = true; maybeOpen(); });
+        setTimeout(open, 8000); // never keep the gate up if the app is slow to load
+        gate.addEventListener('click', open);
+        document.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === 'Escape') open(); });
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

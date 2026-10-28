@@ -91,8 +91,11 @@ export default function PatientsPage() {
     [message],
   );
 
+  // Wait 300 ms after typing stops before searching, but load the full list straight away
+  // (first visit, or search cleared): there's nothing to wait for then.
   useEffect(() => {
-    const timer = setTimeout(() => loadPatients(search.trim()), 300);
+    const term = search.trim();
+    const timer = setTimeout(() => loadPatients(term), term ? 300 : 0);
     return () => clearTimeout(timer);
   }, [search, loadPatients]);
 

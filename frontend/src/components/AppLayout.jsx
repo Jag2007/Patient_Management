@@ -1,13 +1,16 @@
 // Page frame shown after login: a hospital-style left sidebar (brand, menu, signed-in user, logout)
 // and the page content, which fades in on every page change. On small screens the sidebar collapses.
 // The Documents, Audit Log and Staff menu items are shown only to admins; this is for convenience, not security.
-import { Avatar, Button, Layout, Menu, Popconfirm, Typography } from 'antd';
+// Pages load on demand: a small spinner shows while a page's code arrives, and the rest are preloaded when idle.
+import { Suspense, useEffect } from 'react';
+import { Avatar, Button, Layout, Menu, Popconfirm, Spin, Typography } from 'antd';
 import { AuditOutlined, CalendarOutlined, FileTextOutlined, IdcardOutlined, LogoutOutlined, MessageOutlined, TeamOutlined } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { getSession, clearSession } from '../api/session';
 import { colors } from '../theme';
 import BrandMark from './BrandMark';
+import { preloadPages } from '../pages/pageLoaders';
 
 const { Sider, Content } = Layout;
 
@@ -15,6 +18,11 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = getSession();
+
+  useEffect(() => {
+    const adminPages = user.role === 'admin' ? ['documents', 'auditLogs', 'staff'] : [];
+    preloadPages(['patients', 'appointments', 'assistant', ...adminPages]);
+  }, [user.role]);
 
   const items = [
     { key: '/patients', label: 'Patients', icon: <TeamOutlined /> },
@@ -89,7 +97,9 @@ export default function AppLayout() {
             {dayjs().format('dddd, D MMMM YYYY')}
           </Typography.Text>
           <div key={location.pathname} className="page-enter" style={{ marginTop: 6 }}>
-            <Outlet />
+            <Suspense fallback={<Spin style={{ display: 'block', margin: '80px auto' }} />}>
+              <Outlet />
+            </Suspense>
           </div>
         </Content>
       </Layout>
