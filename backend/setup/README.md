@@ -82,4 +82,4 @@ mongosh "$MONGO_URI" --eval 'db.faq_sections.getIndexes()'                      
 
 ## Adding a migration
 
-Create `migrations/003-something.js` exporting `{ description, async up(db) { … } }`, then run `npm run migrate`. Files run in name order, and each is recorded in the `migrations` collection so it never runs twice.
+Create the next numbered file, e.g. `migrations/005-something.js`, exporting `{ description, async up(db) { … } }`, then run `npm run migrate`. Files run in name order, and each is recorded in the `migrations` collection so it never runs twice.

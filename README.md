@@ -73,7 +73,7 @@ Interactive docs (Swagger): **http://localhost:5050/api/docs** once the backend 
 
 ## Architecture
 
-Diagrams and the architecture note are in [`architecture/`](architecture/README.md): [system](architecture/system.md) · [how the AI answers](architecture/ai-flow.md) · [database](architecture/database.md).
+Diagrams are in [`architecture/`](architecture/README.md): [system](architecture/system.md) · [how the AI answers](architecture/ai-flow.md) · [database](architecture/database.md).
 
 ---
 
