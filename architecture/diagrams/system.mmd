@@ -1,0 +1,34 @@
+flowchart TB
+    classDef client fill:#FFF4EC,stroke:#C0704A,stroke-width:2px,color:#1C2B27
+    classDef api fill:#E7F0EB,stroke:#1F5E4F,stroke-width:2px,color:#14352D
+    classDef ai fill:#EFEBF7,stroke:#6B5B95,stroke-width:2px,color:#2E2547
+    classDef data fill:#EAF3FD,stroke:#1C5FA8,stroke-width:2px,color:#123F70
+
+    subgraph Client["① Browser"]
+        UI["<b>React app</b><br/>Patients · Appointments · AI Assistant<br/>Documents · Audit Log · Staff"]:::client
+    end
+
+    subgraph Server["② Express API"]
+        direction LR
+        MW["<b>Security</b><br/>helmet · CORS · gzip<br/>JSON · cookies"]:::api --> AUTH["<b>Access checks</b><br/>requireLogin · requireRole<br/>JWT + account still active"]:::api --> SVC["<b>Services</b><br/>patients · appointments · staff<br/>audit · chat · auth"]:::api
+    end
+
+    subgraph AI["③ AI"]
+        direction LR
+        LLM["<b>Groq LLM</b><br/>openai/gpt-oss-20b<br/>answer + judge"]:::ai -->|"asks for a tool"| TOOLS["<b>Patient tools</b><br/>read-only<br/>role-checked"]:::ai
+    end
+
+    subgraph Data["④ MongoDB Atlas"]
+        direction LR
+        CORE[("<b>Records</b><br/>patients · appointments<br/>users · audit_logs")]:::data ~~~ AIDATA[("<b>AI and sessions</b><br/>faq_sections · conversations<br/>refresh_tokens")]:::data
+    end
+
+    Client -->|"HTTPS · access token + refresh cookie"| Server
+    Server -->|"question + context"| AI
+    Server -->|"reads / writes"| Data
+    AI -->|"fixed read-only queries"| Data
+
+    style Client fill:#FFFBF7,stroke:#C0704A,stroke-width:1.5px
+    style Server fill:#F6FAF8,stroke:#1F5E4F,stroke-width:1.5px
+    style AI fill:#FAF8FD,stroke:#6B5B95,stroke-width:1.5px
+    style Data fill:#F5F9FE,stroke:#1C5FA8,stroke-width:1.5px

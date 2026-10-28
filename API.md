@@ -11,6 +11,7 @@ Base URL: `http://localhost:5050/api`. Interactive version: [Swagger](http://loc
 | 403 | Logged in, but your role can't do this |
 | 404 | Record not found |
 | 409 | Conflict (e.g. appointment already cancelled, username taken) |
+| 413 | Request body over 10 KB |
 | 429 | Too many requests (login attempts, chat questions) |
 | 502 / 503 / 504 | AI service unavailable / busy / too slow |
 
@@ -38,8 +39,8 @@ Base URL: `http://localhost:5050/api`. Interactive version: [Swagger](http://loc
 |---|---|---|---|---|---|
 | GET | `/appointments` | List appointments, newest first | `?patientId=` (optional) | Admin, staff | 200 array with `patient { patientId, name }` |
 | POST | `/appointments` | Book | `patientId`, `dateTime` (future, within 1 year), `clinician`, `reason` | Admin, staff | 201 appointment |
-| PUT | `/appointments/:id` | Edit a scheduled one | any of `dateTime`, `clinician`, `reason` | Admin, staff | 200 appointment · 409 if not scheduled |
-| PATCH | `/appointments/:id/cancel` | Cancel (transaction-safe) | | Admin, staff | 200 appointment · 409 if already cancelled |
+| PUT | `/appointments/:id` | Edit a scheduled one | any of `dateTime`, `clinician`, `reason` | Admin, staff | 200 appointment · 404 if not found · 409 if not scheduled |
+| PATCH | `/appointments/:id/cancel` | Cancel (transaction-safe) | | Admin, staff | 200 appointment · 404 if not found · 409 if already cancelled |
 
 ## AI assistant
 

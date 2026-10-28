@@ -61,7 +61,7 @@ async function resetPassword(id, password, admin) {
 }
 
 async function setActive(id, active, admin) {
-  if (typeof active !== 'boolean') throw httpError(400, 'active must be true or false');
+  if (typeof active !== 'boolean') throw httpError(400, 'Active must be true or false');
   const user = await findStaff(id);
   user.active = active;
   await user.save();

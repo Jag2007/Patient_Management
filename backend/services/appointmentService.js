@@ -51,7 +51,7 @@ async function createAppointment(body = {}, user) {
 }
 
 // Matching on status 'scheduled' makes the check and the write one atomic step, so a double click
-// or a completed/cancelled appointment gets a 409. The change and its audit entry share one transaction.
+// or a completed/cancelled appointment gets a 409 (and an unknown ID a 404). The change and its audit entry share one transaction.
 async function changeScheduled(id, changes, user, action, conflictMessage) {
   return withTransaction(async (session) => {
     const appointment = await Appointment.findOneAndUpdate({ _id: id, status: 'scheduled' }, changes, {
@@ -60,7 +60,10 @@ async function changeScheduled(id, changes, user, action, conflictMessage) {
       session,
     }).populate('patient', 'patientId name');
 
-    if (!appointment) throw httpError(409, conflictMessage);
+    if (!appointment) {
+      const exists = await Appointment.exists({ _id: id }).session(session);
+      throw exists ? httpError(409, conflictMessage) : httpError(404, 'Appointment not found');
+    }
     await logAction(user, action, appointment.patient.patientId, session);
     return appointment;
   });

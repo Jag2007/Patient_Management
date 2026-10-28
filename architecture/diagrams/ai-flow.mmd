@@ -1,0 +1,56 @@
+flowchart LR
+    classDef default fill:#E7F0EB,stroke:#1F5E4F,stroke-width:1.5px,color:#14352D
+    subgraph S1["1 · Input guard"]
+        direction TB
+        Q["Question<br/>1–500 chars, &lt; &gt; stripped"]
+        G["Refuse diagnosis, dosage,<br/>prompt injection<br/>(regex, no LLM call)"]
+        Q --> G
+    end
+
+    subgraph S2["2 · Retrieval"]
+        direction TB
+        K["Keywords<br/>drop question words"]
+        T["MongoDB $text search<br/>on faq_sections"]
+        R["Rank by textScore<br/>keep ≥ 0.5 · top K = 3<br/>label S1–S3"]
+        K --> T --> R
+    end
+
+    subgraph S3["3 · Context"]
+        direction TB
+        M["Memory<br/>summary of 20 older messages<br/>+ last 10 messages · label H1"]
+        P["Prompt<br/>system rules + date +<br/>&lt;context&gt; &lt;conversation&gt; &lt;question&gt;"]
+        TL["Tools offered<br/>only ones the role may use"]
+        M --> P --> TL
+    end
+
+    subgraph S4["4 · Inference"]
+        direction TB
+        L["Groq gpt-oss-20b<br/>temp 0 · 1024 tokens<br/>15 s timeout · JSON reply"]
+        TC["Tool calls<br/>≤ 2 per round · ≤ 2 rounds<br/>results labelled T1, T2"]
+        L --> TC
+    end
+
+    subgraph S5["5 · Verification"]
+        direction TB
+        J1["JSON valid,<br/>can_answer true"]
+        J2["Cited IDs were<br/>really provided"]
+        J3["Judge LLM: answers the<br/>question and every fact<br/>is in the cited text"]
+        J1 --> J2 --> J3
+    end
+
+    subgraph S6["6 · Response"]
+        direction TB
+        A["Answer + source labels<br/>built by the backend"]
+        SV["Saved to conversations<br/>summary refreshed in background"]
+        A --> SV
+    end
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6
+
+    style S1 fill:#F6FAF8,stroke:#1F5E4F,stroke-width:1.5px
+    style S2 fill:#F6FAF8,stroke:#1F5E4F,stroke-width:1.5px
+    style S3 fill:#F6FAF8,stroke:#1F5E4F,stroke-width:1.5px
+    style S4 fill:#F6FAF8,stroke:#1F5E4F,stroke-width:1.5px
+    style S5 fill:#F6FAF8,stroke:#1F5E4F,stroke-width:1.5px
+    style S6 fill:#F6FAF8,stroke:#1F5E4F,stroke-width:1.5px
+    style S5 fill:#FFF4EC,stroke:#C0704A,stroke-width:1.5px

@@ -4,8 +4,7 @@ const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
 const httpError = require('../utils/httpError');
 const chatService = require('./chatService');
-
-const HISTORY_MESSAGES = 6; // last 3 questions and their answers
+const memory = require('./memoryService');
 
 // Every chat query includes the user's ID, so nobody can open or delete someone else's chat.
 function ownChat(id, user) {
@@ -32,8 +31,8 @@ async function ask(question, conversationId, user) {
   const conversation = conversationId ? await Conversation.findOne(ownChat(conversationId, user)) : null;
   if (conversationId && !conversation) throw httpError(404, 'Conversation not found');
 
-  const history = (conversation?.messages || []).slice(-HISTORY_MESSAGES).map(({ role, text }) => ({ role, text }));
-  const result = await chatService.answerQuestion(question, user, history);
+  const { recent, summary } = memory.memoryFor(conversation);
+  const result = await chatService.answerQuestion(question, user, recent, summary);
 
   const turn = [
     { role: 'user', text: chatService.checkQuestion(question) },
@@ -42,6 +41,9 @@ async function ask(question, conversationId, user) {
   const saved = conversation
     ? await Conversation.findOneAndUpdate({ _id: conversation._id }, { $push: { messages: { $each: turn } } }, { returnDocument: 'after' })
     : await Conversation.create({ user: user.id, title: turn[0].text.slice(0, 80), messages: turn });
+
+  // A failed summary only means the next question goes without it, so it's logged and ignored.
+  memory.updateSummary(saved).catch((error) => console.error('Chat summary failed:', error.message));
 
   return { ...result, conversationId: saved._id };
 }

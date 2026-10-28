@@ -1,0 +1,21 @@
+flowchart TB
+    classDef parent fill:#E7F0EB,stroke:#1F5E4F,color:#14352D
+    classDef child fill:#FFFFFF,stroke:#7C8A85,color:#1C2B27
+    classDef source fill:#F6F4EE,stroke:#C0704A,color:#1C2B27,stroke-dasharray:4 3
+
+    users["<b>users</b><br/>PK _id<br/>username (unique)<br/>passwordHash · role<br/>active · lastLoginAt"]:::parent
+    patients["<b>patients</b><br/>PK _id<br/>patientId (unique, P-0001)<br/>name · dateOfBirth<br/>phone · email · address"]:::parent
+    docs["<b>backend/docs/*.md</b><br/>clinic documents"]:::source
+
+    conversations["<b>conversations</b><br/>PK _id<br/>FK user → users._id<br/>title · messages[ ]<br/>summary { text, from, to }"]:::child
+    tokens["<b>refresh_tokens</b><br/>PK _id<br/>FK user → users._id<br/>tokenHash (unique)<br/>expiresAt (TTL)"]:::child
+    audit["<b>audit_logs</b><br/>PK _id<br/>FK username → users.username<br/>FK patientId → patients.patientId<br/>or targetUsername · action · createdAt"]:::child
+    appointments["<b>appointments</b><br/>PK _id<br/>FK patient → patients._id<br/>dateTime · clinician<br/>reason · status"]:::child
+    faq["<b>faq_sections</b><br/>PK _id<br/>source · section<br/>text (text index)"]:::child
+
+    users -->|"1 → many<br/>user = _id"| conversations
+    users -->|"1 → many<br/>user = _id"| tokens
+    users -->|"1 → many<br/>by username"| audit
+    patients -->|"1 → many<br/>by patientId"| audit
+    patients -->|"1 → many<br/>patient = _id"| appointments
+    docs -->|"split into<br/>sections by the seed"| faq

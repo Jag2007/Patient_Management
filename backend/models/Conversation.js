@@ -16,6 +16,8 @@ const conversationSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     title: { type: String, required: true, trim: true, maxlength: 80 },
     messages: [messageSchema],
+    // Summary of the 20 messages before the last 10, and which messages it covers (see memoryService).
+    summary: { _id: false, text: String, from: Number, to: Number },
   },
   { timestamps: true }
 );

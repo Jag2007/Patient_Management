@@ -4,22 +4,17 @@ A clinic staff portal for managing patients and appointments, with an AI assista
 
 All data is fictional. The app gives no diagnosis or treatment advice.
 
+**Live demo:** https://frontend-nine-theta-1b7rkpr394.vercel.app (log in with `admin` / `Admin@123`) · **API docs:** https://patient-management-0qj4.onrender.com/api/docs
+
 **Stack:** React (Vite) + Ant Design · Node.js + Express · MongoDB Atlas · Groq (`openai/gpt-oss-20b`) · JWT · Jest
 
 ---
 
 ## Features
 
-```mermaid
-flowchart TB
-    Site(["Patient Management · login as admin or staff"])
-    Site --> P["<b>Patients</b>"] --> P1["Add · view · edit<br/>Search name or ID<br/>Filter city, age, area<br/>Sort ID, name, age"]
-    Site --> A["<b>Appointments</b>"] --> A1["Book · edit<br/>Cancel with confirmation<br/>Filter status, clinician, dates<br/>Sort date, patient"]
-    Site --> AI["<b>AI Assistant</b>"] --> AI1["Clinic FAQ answers<br/>Patient details and visits<br/>Sources on every answer<br/>Saved chat history"]
-    Site --> D["<b>Documents</b> · admin"] --> D1["Clinic docs<br/>the AI reads"]
-    Site --> L["<b>Audit Log</b> · admin"] --> L1["Who did what,<br/>to whom, when"]
-    Site --> S["<b>Staff</b> · admin"] --> S1["Add login · reset password<br/>Disable · delete"]
-```
+![Features](architecture/images/features.png)
+
+<sub>Source: [`features.mmd`](architecture/diagrams/features.mmd)</sub>
 
 ---
 
@@ -45,7 +40,20 @@ cd Patient_Management
 
 Then open **http://localhost:5173** and log in with `admin` / `Admin@123` or `staff` / `Staff@123`.
 
-- **`.env`:** the setup step asks for your MongoDB URI and Groq key, generates `JWT_SECRET`, and writes `backend/.env` from [`.env.example`](.env.example). [`frontend/.env.example`](frontend/.env.example) is only needed when the frontend is hosted separately.
+**Environment variables.** `make setup` (or `npm run init-env`) creates `backend/.env` from [`.env.example`](.env.example): it asks for your MongoDB URI and Groq key, generates `JWT_SECRET` and fills in `MONGO_URI_TEST`. To do it by hand, copy `.env.example` to `backend/.env` and fill it in.
+
+| Variable | File | Required | Example / default |
+|---|---|---|---|
+| `MONGO_URI` | `backend/.env` | Yes | `mongodb+srv://<user>:<password>@<cluster>.mongodb.net/patient_management` |
+| `MONGO_URI_TEST` | `backend/.env` | For `make test` | Same cluster, database `patient_management_test` (wiped on every test run) |
+| `JWT_SECRET` | `backend/.env` | Yes | Long random string, e.g. `openssl rand -hex 32` |
+| `GROQ_API_KEY` | `backend/.env` | For the AI assistant | From [console.groq.com/keys](https://console.groq.com/keys); the app runs without it, the assistant is off |
+| `GROQ_MODEL` | `backend/.env` | No | `openai/gpt-oss-20b` |
+| `PORT` | `backend/.env` | No | `5050` |
+| `CLIENT_ORIGIN` | `backend/.env` | When hosted | Frontend URL(s) allowed by CORS, comma-separated; default `http://localhost:5173` |
+| `NODE_ENV` | `backend/.env` | When hosted | `production`, so the refresh cookie works across sites |
+| `VITE_API_BASE_URL` | `frontend/.env` ([example](frontend/.env.example)) | When hosted | Backend URL, e.g. `https://<your-api>.onrender.com/api`; leave empty locally |
+
 - **`npm ci`** ("clean install") installs the exact versions in `package-lock.json` and fails if they don't match `package.json`. `npm install` may update the lock file. `ci` gives everyone the same dependencies.
 
 **Other Make commands:** `make db` (reload demo data) · `make test` · `make eval` · `make check` (tests + build + security audit) · `make` (list all).
@@ -61,7 +69,8 @@ Then open **http://localhost:5173** and log in with `admin` / `Admin@123` or `st
 
 ## Architecture
 
-Diagrams in [`architecture/`](architecture/README.md): [system](architecture/system.md) · [how the AI answers](architecture/ai-flow.md) (with chat history and context handling) · [database](architecture/database.md).
+- **Architecture note (LLM, retrieval approach, AI tools, chat memory):** [architecture/ai-flow.md](architecture/ai-flow.md)
+- **Diagrams:** [system](architecture/system.md) · [how the AI answers](architecture/ai-flow.md) · [database](architecture/database.md)
 
 ---
 
@@ -111,11 +120,11 @@ Schema and indexes are created by [migrations](backend/setup/migrations/) (`make
 ## Tests and evaluation
 
 ```bash
-make test    # 54 tests, LLM mocked
+make test    # 62 tests, LLM mocked
 make eval    # golden set, real model
 ```
 
-- **Tests:** auth and refresh tokens, patients, appointments, staff, AI tools, chat guardrails. Run on `MONGO_URI_TEST`.
+- **Tests:** auth and refresh tokens, patients, appointments, staff, AI tools, chat guardrails, chat memory, error responses. Run on `MONGO_URI_TEST`.
 - **Mocked LLM:** `jest.mock` swaps the Groq call for scripted replies (good answer, tool request, broken JSON, fake source, timeout). No network, free, same result every run.
 - **Golden set:** 38 questions with reference answers. Last run **37/38 (97.4%)**, 100% correct sources, 100% correct declines, ~2 s per question. Details in [RESULTS.md](backend/eval/RESULTS.md).
 
@@ -127,9 +136,10 @@ make eval    # golden set, real model
 |---|---|
 | Keyword search, no embeddings: misses synonyms ("fees" vs "billing") | Hybrid search with Atlas Vector Search |
 | Answers aren't streamed (the judge checks the full answer first) | Stream progress states over SSE |
-| Only the last 6 chat messages reach the model | Rolling summary of older turns |
+| Chat memory: last 10 messages plus a summary of the 20 before; older turns are dropped | Summarise in bigger blocks for very long chats |
 | Every staff member can see every patient | Assign patients to clinicians |
 | Access token in localStorage; 30 s account cache is per server | Token in memory only; shared cache (Redis) |
 | Diagnosis and injection checks are regex-based | Moderation model before the main call |
 | Groq free tier (~8k tokens/min), up to 4 LLM calls per question | Paid tier, cache common FAQ answers |
 | No patient notification on cancellation | WhatsApp/SMS after the cancel commits, via a retry queue |
+| No Docker setup (`make setup` covers local setup) | `docker-compose` with backend, frontend and MongoDB |

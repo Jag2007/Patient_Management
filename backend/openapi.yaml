@@ -152,6 +152,7 @@ paths:
       responses:
         '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Appointment' } } } }
         '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { description: Appointment not found }
         '409': { description: Not scheduled (already cancelled or completed) }
 
   /appointments/{id}/cancel:
@@ -162,6 +163,7 @@ paths:
       parameters: [{ $ref: '#/components/parameters/Id' }]
       responses:
         '200': { description: Cancelled, content: { application/json: { schema: { $ref: '#/components/schemas/Appointment' } } } }
+        '404': { description: Appointment not found }
         '409': { description: Only scheduled appointments can be cancelled }
 
   /chat:

@@ -151,6 +151,19 @@ describe('Appointments', () => {
     const afterCancel = await asStaff(request(app).put(url)).send({ reason: 'Too late' });
     expect(afterCancel.status).toBe(409);
   });
+
+  test('an unknown appointment ID gets 404, a malformed one 400', async () => {
+    const unknown = '000000000000000000000000';
+    const edit = await asStaff(request(app).put(`/api/appointments/${unknown}`)).send({ reason: 'x' });
+    const cancel = await asStaff(request(app).patch(`/api/appointments/${unknown}/cancel`));
+    expect([edit.status, edit.body.error, cancel.status]).toEqual([404, 'Appointment not found', 404]);
+    expect((await asStaff(request(app).patch('/api/appointments/123/cancel'))).body.error).toBe('Invalid ID');
+  });
+
+  test('a body over 10 KB gets a clean 413 message', async () => {
+    const res = await asStaff(request(app).post('/api/patients')).send({ name: 'x'.repeat(20000) });
+    expect([res.status, res.body.error]).toEqual([413, 'Request is too large']);
+  });
 });
 
 describe('Audit log permissions', () => {
