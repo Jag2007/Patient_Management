@@ -1,4 +1,5 @@
-// POST /api/chat: send a question to the AI assistant. Requires login (admin or staff).
+// POST /api/chat: send a question (plus the user's last few questions, for follow-ups) to the AI assistant.
+// Requires login (admin or staff).
 // Rate limited to 20 questions per minute per user to protect against abuse and API cost.
 const express = require('express');
 const rateLimit = require('express-rate-limit');
@@ -17,7 +18,7 @@ const chatLimiter = rateLimit({
 });
 
 router.post('/', requireRole('admin', 'staff'), chatLimiter, async (req, res) => {
-  res.json(await chatService.answerQuestion(req.body?.question, req.user));
+  res.json(await chatService.answerQuestion(req.body?.question, req.user, req.body?.previousQuestions));
 });
 
 module.exports = router;

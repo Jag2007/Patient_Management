@@ -1,10 +1,12 @@
-// AI assistant chat (bubbles slide in; animated dots while waiting). Sends each question to POST /api/chat and shows the answer with its sources.
-// Sources come from the backend response (never invented by the model). Errors appear in an Alert.
-// The input is limited to 500 characters, the same limit the backend enforces.
+// AI assistant chat (bubbles slide in; animated dots while waiting). Sends each question to POST /api/chat,
+// together with the user's last 3 questions so follow-ups like "her appointments" work, and shows the answer with its sources.
+// The chat and the unsent question are kept while you switch pages (chatStorage.js). "New chat" starts over.
+// Sources come from the backend response (never invented by the model). Input is limited to 500 characters.
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Avatar, Button, Card, Input, Tag, Typography } from 'antd';
-import { FileTextOutlined, DatabaseOutlined, MessageOutlined, SendOutlined, UserOutlined } from '@ant-design/icons';
+import { FileTextOutlined, DatabaseOutlined, MessageOutlined, PlusOutlined, SendOutlined, UserOutlined } from '@ant-design/icons';
 import api, { errorMessage } from '../api/client';
+import { clearChat, loadChat, saveChat } from '../api/chatStorage';
 import PageHeader from '../components/PageHeader';
 import { colors } from '../theme';
 
@@ -56,9 +58,11 @@ function Message({ message }) {
   );
 }
 
+const PREVIOUS_QUESTIONS_SENT = 3;
+
 export default function ChatPage() {
-  const [messages, setMessages] = useState([]);
-  const [question, setQuestion] = useState('');
+  const [messages, setMessages] = useState(() => loadChat().messages);
+  const [question, setQuestion] = useState(() => loadChat().draft);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const bottomRef = useRef(null);
@@ -67,15 +71,30 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  useEffect(() => {
+    saveChat({ messages, draft: question });
+  }, [messages, question]);
+
+  function startNewChat() {
+    clearChat();
+    setMessages([]);
+    setQuestion('');
+    setError('');
+  }
+
   async function ask(text = question) {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
+    const previousQuestions = messages
+      .filter((m) => m.role === 'user')
+      .map((m) => m.text)
+      .slice(-PREVIOUS_QUESTIONS_SENT);
     setError('');
     setQuestion('');
     setMessages((prev) => [...prev, { role: 'user', text: trimmed }]);
     setLoading(true);
     try {
-      const { data } = await api.post('/chat', { question: trimmed });
+      const { data } = await api.post('/chat', { question: trimmed, previousQuestions });
       setMessages((prev) => [...prev, { role: 'assistant', text: data.answer, sources: data.sources }]);
     } catch (err) {
       setError(errorMessage(err));
@@ -89,6 +108,13 @@ export default function ChatPage() {
       <PageHeader
         title="AI Assistant"
         subtitle="Answers come only from clinic documents and patient records. It does not give medical advice."
+        actions={
+          messages.length > 0 && (
+            <Button icon={<PlusOutlined />} onClick={startNewChat} disabled={loading}>
+              New chat
+            </Button>
+          )
+        }
       />
       <Card styles={{ body: { padding: 0 } }}>
         <div style={{ height: 'calc(100vh - 330px)', minHeight: 320, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: '#FBFAF7' }}>
