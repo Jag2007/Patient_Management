@@ -1,6 +1,6 @@
 // Checks a username and password and returns a signed JWT if they match.
 // The same error is used for a wrong username and a wrong password,
-// so an attacker cannot learn which usernames exist.
+// so an attacker cannot learn which usernames exist. A disabled account is told so only after the right password.
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
@@ -14,6 +14,9 @@ async function login(username, password) {
   const user = await User.findOne({ username: username.trim().toLowerCase() });
   const passwordOk = user && (await bcrypt.compare(password, user.passwordHash));
   if (!passwordOk) throw httpError(401, 'Invalid username or password');
+  if (!user.active) throw httpError(403, 'This account has been disabled. Please contact an admin.');
+
+  await User.updateOne({ _id: user._id }, { lastLoginAt: new Date() });
 
   const payload = { id: user._id, username: user.username, role: user.role };
   const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '8h' });
