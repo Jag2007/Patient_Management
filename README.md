@@ -63,7 +63,7 @@ Then open **http://localhost:5173** and log in with `admin` / `Admin@123` or `st
 ## API
 
 - **Table of every endpoint:** [API.md](API.md)
-- **Interactive docs (Swagger):** http://localhost:5050/api/docs once the backend is running
+- **Interactive docs (Swagger):** https://patient-management-0qj4.onrender.com/api/docs (hosted) · http://localhost:5050/api/docs (local)
 - **Streaming:** the AI Assistant uses `POST /api/chat/stream` (Server-Sent Events): status steps, then the answer tokens live from Groq (`stream: true`), then the verified reply.
 
 ---

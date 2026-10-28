@@ -1,6 +1,6 @@
 # API reference
 
-Base URL: `http://localhost:5050/api`. Interactive version: [Swagger](http://localhost:5050/api/docs) (from [`backend/openapi.yaml`](backend/openapi.yaml)).
+Base URL: `https://patient-management-0qj4.onrender.com/api` (hosted) or `http://localhost:5050/api` (local). Interactive version: [Swagger](https://patient-management-0qj4.onrender.com/api/docs) (from [`backend/openapi.yaml`](backend/openapi.yaml)).
 
 **Auth:** send `Authorization: Bearer <access token>` on every request except the four marked *Public*. Access tokens last 15 minutes; `POST /auth/refresh` swaps the httpOnly refresh cookie for a new one. All errors look like `{ "error": "message" }`, validation errors add `fields`.
 
