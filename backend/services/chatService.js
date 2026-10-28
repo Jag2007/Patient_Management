@@ -12,7 +12,6 @@ const FALLBACK = "I don't have enough information to answer that.";
 const MEDICAL_REFUSAL =
   "I can't help with diagnosis, treatment or medication advice. Please speak to a clinician. I can answer questions about the clinic or look up a patient's details and appointments.";
 const INJECTION_REFUSAL = "I can't do that. I can only answer questions about the clinic or look up a patient's details and appointments.";
-const NO_APPOINTMENTS = 'No appointments found for that patient.';
 const MAX_TOOL_CALLS = 2;
 const MAX_TOOL_ROUNDS = 2;
 
@@ -99,24 +98,6 @@ function buildVerifiedAnswer(content, availableSources) {
   return reply(parsed.answer.trim(), sources.map(({ id, label }) => ({ id, label })));
 }
 
-// Turns a tool result that needs no AI (error, not found, several matches, no appointments) into a fixed reply.
-function directReply(toolName, result) {
-  if (result.error) return result.error;
-  if (result.notFound) return `No patient found matching "${result.notFound}".`;
-  if (result.matches) {
-    const list = result.matches.map((m) => `${m.patientId} ${m.name}`).join(', ');
-    return `I found more than one matching patient: ${list}. Please ask again with the patient ID.`;
-  }
-  if (toolName === 'get_patient_appointments' && result.appointments.length === 0) return NO_APPOINTMENTS;
-  return null;
-}
-
-function toolSourceLabel(toolName, result) {
-  const patient = result.patient || result;
-  const kind = toolName === 'get_patient_appointments' ? 'Appointment records' : 'Patient record';
-  return `${kind} for ${patient.patientId} (${patient.name})`;
-}
-
 async function answerQuestion(rawQuestion, user) {
   const question = checkQuestion(rawQuestion);
   const refusal = safetyRefusal(question);
@@ -141,13 +122,12 @@ async function answerQuestion(rawQuestion, user) {
     const toolMessages = [];
 
     for (const toolCall of toolCalls) {
-      const result = await patientTools.runTool(toolCall.function.name, toolCall.function.arguments, user);
-      const fixedAnswer = directReply(toolCall.function.name, result);
-      if (fixedAnswer) return reply(fixedAnswer);
+      const outcome = await patientTools.runTool(toolCall.function.name, toolCall.function.arguments, user);
+      if (outcome.reply) return reply(outcome.reply);
 
       const sourceId = `T${++toolCount}`;
-      availableSources.push({ id: sourceId, label: toolSourceLabel(toolCall.function.name, result) });
-      toolMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify({ source_id: sourceId, ...result }) });
+      availableSources.push({ id: sourceId, label: outcome.sourceLabel });
+      toolMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify({ source_id: sourceId, ...outcome.data }) });
     }
 
     messages.push({ role: 'assistant', content: response.content || '', tool_calls: toolCalls }, ...toolMessages);
@@ -157,4 +137,4 @@ async function answerQuestion(rawQuestion, user) {
   return buildVerifiedAnswer(response.content, availableSources);
 }
 
-module.exports = { answerQuestion, checkQuestion, safetyRefusal, parseModelJson, FALLBACK, MEDICAL_REFUSAL, INJECTION_REFUSAL, NO_APPOINTMENTS };
+module.exports = { answerQuestion, checkQuestion, safetyRefusal, parseModelJson, FALLBACK, MEDICAL_REFUSAL, INJECTION_REFUSAL };

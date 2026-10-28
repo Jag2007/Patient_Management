@@ -1,6 +1,6 @@
 // The one axios instance every page uses to call the backend.
 // It adds the login token to each request and sends the user to /login when the token is rejected (401).
-// errorMessage() turns any failed request into friendly text for the UI.
+// errorMessage() turns any failed request into friendly text; showFieldErrors() puts backend field errors under form inputs.
 import axios from 'axios';
 import { getToken, clearSession } from './session';
 
@@ -31,8 +31,9 @@ export function errorMessage(error) {
   return 'Something went wrong, please try again';
 }
 
-export function fieldErrors(error) {
-  return error.response?.data?.fields || {};
+export function showFieldErrors(form, error) {
+  const fields = error.response?.data?.fields || {};
+  form.setFields(Object.entries(fields).map(([name, message]) => ({ name, errors: [message] })));
 }
 
 export default api;

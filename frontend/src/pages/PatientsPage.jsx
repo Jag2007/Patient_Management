@@ -2,7 +2,7 @@
 // Search runs automatically 300 ms after the user stops typing (debounce), so we don't call the API on every key.
 // Viewing a patient calls the backend (GET /patients/:id), which records an audit entry.
 // Admins also get "Activity", which opens that patient's audit history in a side drawer.
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { App, Avatar, Button, Card, Descriptions, Input, Modal, Space, Table, Typography } from 'antd';
 import { EditOutlined, EyeOutlined, HistoryOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -33,22 +33,25 @@ export default function PatientsPage() {
   const { message } = App.useApp();
   const isAdmin = getSession()?.user?.role === 'admin';
 
-  async function loadPatients(term) {
-    setLoading(true);
-    try {
-      const { data } = await api.get('/patients', { params: { search: term || undefined } });
-      setPatients(data);
-    } catch (err) {
-      message.error(errorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }
+  const loadPatients = useCallback(
+    async (term) => {
+      setLoading(true);
+      try {
+        const { data } = await api.get('/patients', { params: { search: term || undefined } });
+        setPatients(data);
+      } catch (err) {
+        message.error(errorMessage(err));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [message]
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => loadPatients(search.trim()), 300);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, loadPatients]);
 
   async function viewPatient(patientId) {
     try {

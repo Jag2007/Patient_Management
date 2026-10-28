@@ -1,6 +1,8 @@
-// Core API tests: patient validation, appointment date rules, safe cancellation and permissions.
+// Core API tests: login, patient create/edit/validation, appointment date rules, safe cancellation,
+// permissions and the login rate limit.
 // They call the real Express routes with Supertest against the test database.
 const { app, request, setupTestDb, loginAs, closeTestDb } = require('./helpers');
+const AuditLog = require('../models/AuditLog');
 
 const DAY = 24 * 60 * 60 * 1000;
 let staffToken;
@@ -32,6 +34,13 @@ function appointmentFor(patientId, dateTime) {
 }
 
 describe('Auth', () => {
+  test('logs in with correct credentials and returns a token and role', async () => {
+    const res = await request(app).post('/api/auth/login').send({ username: 'staff', password: 'Staff@123' });
+    expect(res.status).toBe(200);
+    expect(res.body.token).toEqual(expect.any(String));
+    expect(res.body.user).toEqual({ username: 'staff', role: 'staff' });
+  });
+
   test('rejects requests without a token', async () => {
     const res = await request(app).get('/api/patients');
     expect(res.status).toBe(401);
@@ -59,6 +68,18 @@ describe('Patients', () => {
     });
     expect(res.status).toBe(400);
     expect(Object.keys(res.body.fields)).toEqual(expect.arrayContaining(['name', 'dateOfBirth', 'phone', 'email']));
+  });
+
+  test('edits a patient, ignores fields that are not editable, and writes an audit entry', async () => {
+    const patient = await createPatient();
+    const res = await asStaff(request(app).put(`/api/patients/${patient.patientId}`)).send({
+      address: '12 MG Road',
+      patientId: 'P-9999',
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.address).toBe('12 MG Road');
+    expect(res.body.patientId).toBe(patient.patientId);
+    expect(await AuditLog.exists({ action: 'patient.update', patientId: patient.patientId })).toBeTruthy();
   });
 });
 
@@ -107,5 +128,17 @@ describe('Audit log permissions', () => {
     expect(res.status).toBe(200);
     expect(res.body.length).toBeGreaterThan(0);
     expect(Object.keys(res.body[0])).not.toContain('name');
+  });
+});
+
+describe('Login rate limit', () => {
+  test('blocks an IP after too many failed logins', async () => {
+    const statuses = [];
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const res = await request(app).post('/api/auth/login').send({ username: 'staff', password: 'wrong' });
+      statuses.push(res.status);
+    }
+    expect(statuses).toContain(401);
+    expect(statuses.at(-1)).toBe(429);
   });
 });

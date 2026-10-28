@@ -43,7 +43,7 @@ Patient_Management/
 │   ├── middleware/      # login check, role check, error handler
 │   ├── services/        # business logic (patients, appointments, audit, retrieval, LLM, chat)
 │   ├── tools/           # the AI tools and their permission rules
-│   ├── utils/           # small helpers (httpError)
+│   ├── utils/           # small helpers (httpError, escapeRegex)
 │   ├── docs/            # clinic FAQ documents (fictional)
 │   ├── seed/            # script that fills the database with demo data
 │   ├── tests/           # Jest + Supertest tests
@@ -174,7 +174,7 @@ Permissions are enforced in backend code. The frontend hides the Audit Log menu 
 
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| POST | `/api/auth/login` | public | Log in, returns a token |
+| POST | `/api/auth/login` | public | Log in, returns a token (10 failed attempts per 15 min per IP) |
 | GET | `/api/patients?search=` | admin, staff | List or search patients |
 | POST | `/api/patients` | admin, staff | Create a patient |
 | GET | `/api/patients/:patientId` | admin, staff | View a patient |
@@ -237,6 +237,8 @@ The FAQ is small, and keyword search is simple, predictable and easy to debug: y
 
 The AI can **request** these tools using Groq function calling, but only the backend decides whether they run.
 
+Each tool is one entry in the `TOOLS` object in `tools/patientTools.js`: its allowed roles, description, read-only query, source label, and the fixed reply to give when it finds nothing. The chat service never mentions tool names, so adding a tool means adding one entry.
+
 | Tool | Returns |
 |---|---|
 | `get_patient_appointments` | Date/time, clinician, reason and status of each appointment |
@@ -246,7 +248,7 @@ Each tool takes **exactly one** argument: `patientId` (e.g. `P-0003`) or `name` 
 
 | Step | What the backend does |
 |---|---|
-| 1. Permission | Checks the logged-in user's role is in `TOOL_PERMISSIONS` for that tool. Tools the user can't use are not even offered to the AI. |
+| 1. Permission | Checks the logged-in user's role is in that tool's `roles`. Tools the user can't use are not even offered to the AI. |
 | 2. Validation | Arguments must be valid JSON with exactly one field: `patientId` in the format `P-0000`, or a plain name |
 | 3. Find patient | If no patient matches, or a name matches several patients, the backend replies directly (e.g. *"I found more than one matching patient: P-0003 Ravi Kumar, P-0004 Ravi Shankar. Please ask again with the patient ID."*) without asking the AI to guess |
 | 4. Audit | Records who looked up which patient (`ai.tool.get_patient_details`, etc.) |
@@ -264,6 +266,8 @@ The AI never gets direct database access. Medical data such as lab values is not
 - **No made-up sources.** Sources are built by the backend from what was actually retrieved.
 - **Untrusted input.** User messages, documents and tool results are wrapped in tags and treated as data, not instructions. Angle brackets are stripped from questions.
 - **Access control in code.** Permissions are checked by the backend, never by the AI prompt.
+- **Brute-force protection.** Failed logins are limited to 10 per 15 minutes per IP; chat is limited to 20 questions per minute per user.
+- **Safe startup.** The server refuses to start if `MONGO_URI` or `JWT_SECRET` is missing, with a clear message.
 - **No secrets in the repo.** API keys live only in `backend/.env`, which is git-ignored.
 
 ---
@@ -289,11 +293,13 @@ cd backend
 npm test
 ```
 
-30 tests run against the separate `MONGO_URI_TEST` database. The AI tests replace Groq with a Jest mock, so they never call the real API. That also lets them simulate the model misbehaving.
+33 tests run against the separate `MONGO_URI_TEST` database. The AI tests replace Groq with a Jest mock, so they never call the real API. That also lets them simulate the model misbehaving.
 
 **Core API**
-- Requests without a token are rejected; wrong username and wrong password give the same error
+- Correct login returns a token and role; requests without a token are rejected; wrong username and wrong password give the same error
 - Invalid patient data is rejected with a message per field
+- Editing a patient works, ignores non-editable fields (like `patientId`) and writes an audit entry
+- Too many failed logins from one IP are blocked with `429`
 - Appointments in the past or more than a year ahead are rejected
 - Cancelling the same appointment twice fails the second time
 - Staff get `403` on the audit log; the log stores only patient IDs
@@ -326,7 +332,7 @@ npm test
 | Retrieval with source references | `services/retrievalService.js`, sources built in `chatService.js` |
 | Say so when the answer is not supported | Retrieval gate, `can_answer` flag, source check → fixed fallback |
 | Handle timeouts, invalid input, AI/API failures | `checkQuestion()`, `llmService.js` error mapping, `errorHandler.js` |
-| At least one narrowly scoped tool with argument validation and permissions | `tools/patientTools.js` (`TOOL_PERMISSIONS`, `parseArguments()`) |
+| At least one narrowly scoped tool with argument validation and permissions | `tools/patientTools.js` (`TOOLS[...].roles`, `parseArguments()`) |
 | No unrestricted database access for the model | Tools run fixed read-only queries and return whitelisted fields |
 | Synthetic data only | `seed/seed.js`, `docs/*.md` |
 | No diagnosis or treatment functionality | `MEDICAL_PATTERNS` refusal + system prompt |

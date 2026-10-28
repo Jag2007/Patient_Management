@@ -3,6 +3,7 @@
 // Every single-patient action writes an audit entry.
 const Patient = require('../models/Patient');
 const httpError = require('../utils/httpError');
+const escapeRegex = require('../utils/escapeRegex');
 const { logAction } = require('./auditService');
 
 const EDITABLE_FIELDS = ['name', 'dateOfBirth', 'phone', 'email', 'address'];
@@ -19,10 +20,6 @@ async function nextPatientId() {
   const last = await Patient.findOne().sort({ patientId: -1 });
   const nextNumber = last ? Number(last.patientId.slice(2)) + 1 : 1;
   return `P-${String(nextNumber).padStart(4, '0')}`;
-}
-
-function escapeRegex(text) {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 async function listPatients(search) {

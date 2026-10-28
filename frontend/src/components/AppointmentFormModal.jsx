@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { App, DatePicker, Form, Input, Modal, Select } from 'antd';
 import dayjs from 'dayjs';
-import api, { errorMessage, fieldErrors } from '../api/client';
+import api, { errorMessage, showFieldErrors } from '../api/client';
 
 function isOutsideBookingWindow(day) {
   return day.isBefore(dayjs(), 'day') || day.isAfter(dayjs().add(1, 'year'));
@@ -31,8 +31,7 @@ export default function AppointmentFormModal({ open, onClose, onSaved }) {
       message.success('Appointment booked');
       onSaved();
     } catch (err) {
-      const fields = fieldErrors(err);
-      form.setFields(Object.entries(fields).map(([name, msg]) => ({ name, errors: [msg] })));
+      showFieldErrors(form, err);
       message.error(errorMessage(err));
     } finally {
       setSaving(false);

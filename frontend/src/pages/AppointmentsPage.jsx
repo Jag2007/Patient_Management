@@ -1,6 +1,6 @@
 // Appointments list with status tags and filters, a "New appointment" form, and a Cancel button.
 // Cancel asks "Are you sure?" first; the backend then cancels atomically, so double clicks are safe.
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { App, Button, Card, Popconfirm, Segmented, Table, Tag, Typography } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -18,7 +18,7 @@ export default function AppointmentsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const { message } = App.useApp();
 
-  async function loadAppointments() {
+  const loadAppointments = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await api.get('/appointments');
@@ -28,11 +28,11 @@ export default function AppointmentsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [message]);
 
   useEffect(() => {
     loadAppointments();
-  }, []);
+  }, [loadAppointments]);
 
   async function cancelAppointment(id) {
     try {

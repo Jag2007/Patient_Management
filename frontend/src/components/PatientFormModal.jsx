@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { App, DatePicker, Form, Input, Modal } from 'antd';
 import dayjs from 'dayjs';
-import api, { errorMessage, fieldErrors } from '../api/client';
+import api, { errorMessage, showFieldErrors } from '../api/client';
 
 export default function PatientFormModal({ open, patient, onClose, onSaved }) {
   const [form] = Form.useForm();
@@ -26,8 +26,7 @@ export default function PatientFormModal({ open, patient, onClose, onSaved }) {
       message.success(isEdit ? 'Patient updated' : 'Patient created');
       onSaved();
     } catch (err) {
-      const fields = fieldErrors(err);
-      form.setFields(Object.entries(fields).map(([name, msg]) => ({ name, errors: [msg] })));
+      showFieldErrors(form, err);
       message.error(errorMessage(err));
     } finally {
       setSaving(false);
