@@ -1,12 +1,13 @@
-// Records sensitive actions (view/create/update patient, create/cancel appointment, AI tool use).
+// Records sensitive actions (view/create/update patient, create/edit/cancel appointment, AI tool use).
 // Stores only username, action and patient ID, so the log itself holds no personal details.
 // When an admin reads the log, current patient names are looked up and added for display only (never stored).
 // Called by the other services and the AI tool; read by the admin-only audit route.
 const AuditLog = require('../models/AuditLog');
 const Patient = require('../models/Patient');
 
-async function logAction(user, action, patientId) {
-  await AuditLog.create({ username: user.username, action, patientId });
+// Pass a session to save the entry inside the caller's transaction (see utils/withTransaction.js).
+async function logAction(user, action, patientId, session) {
+  await AuditLog.create([{ username: user.username, action, patientId }], { session });
 }
 
 async function listRecent(patientId, limit = 200) {

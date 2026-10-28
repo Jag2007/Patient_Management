@@ -1,5 +1,5 @@
-// Appointment endpoints: list (optionally by ?patientId=), create, and cancel.
-// Thin on purpose; all rules (date checks, atomic cancel) live in appointmentService.
+// Appointment endpoints: list (optionally by ?patientId=), create, edit and cancel.
+// Thin on purpose; all rules (date checks, atomic edit/cancel, transactions) live in appointmentService.
 const express = require('express');
 const { requireRole } = require('../middleware/auth');
 const appointmentService = require('../services/appointmentService');
@@ -13,6 +13,10 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   res.status(201).json(await appointmentService.createAppointment(req.body, req.user));
+});
+
+router.put('/:id', async (req, res) => {
+  res.json(await appointmentService.updateAppointment(req.params.id, req.body, req.user));
 });
 
 router.patch('/:id/cancel', async (req, res) => {
