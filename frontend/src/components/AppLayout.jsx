@@ -27,7 +27,7 @@ export default function AppLayout() {
     <Layout style={{ minHeight: '100vh' }}>
       <Header style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
         <Typography.Text strong style={{ color: '#fff', fontSize: 16, whiteSpace: 'nowrap' }}>
-          Sunrise Clinic
+          Patient Management
         </Typography.Text>
         <Menu
           theme="dark"

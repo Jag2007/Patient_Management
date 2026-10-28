@@ -26,7 +26,7 @@ export default function LoginPage() {
     <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#f0f5f4', padding: 16 }}>
       <Card style={{ width: 360, maxWidth: '100%' }}>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
-          Sunrise Clinic
+          Patient Management
         </Typography.Title>
         <Typography.Paragraph type="secondary">Staff login</Typography.Paragraph>
         {error && <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />}
