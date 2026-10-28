@@ -27,11 +27,13 @@ Where to find each item the assignment asks for. Every link jumps to the exact s
 | | Known limitations or incomplete features | [Known limitations](#known-limitations) · [Bonus features](#bonus-features) (what was and wasn't done) |
 | **Extras** | Core requirements, one by one | [Assignment checklist](#assignment-checklist) |
 | | Security and permissions | [Roles and permissions](#roles-and-permissions) · [Safety](#safety) |
+| | Speed | [Performance](#performance) |
 
 ---
 
 ## Features
 
+- **Opening gate:** a slow, smooth intro when the site opens (logo, heartbeat line, doors sliding apart) that plays while the app loads behind it
 - **Login** for clinic staff with two roles: `admin` and `staff`
 - **Staff management (admin only):** admins create staff logins, reset passwords, disable/enable and delete them; staff can't see or call any of it
 - **Patients:** create, view, edit, list, live search by name or patient ID, filters (city, age group, area, has email) and "Sort by" (ID, newest/oldest added, name A–Z/Z–A, age)
@@ -127,6 +129,7 @@ npm run seed      # load the synthetic dataset: 2 users, 150 patients, 198 appoi
 | `backend/setup/migrations/001-initial-schema.js` | Collections with `$jsonSchema` validation rules and all indexes (incl. the text index the AI searches) |
 | `backend/setup/migrations/002-chat-history.js` | The `conversations` collection for chat history |
 | `backend/setup/migrations/003-staff-accounts.js` | `active` and `lastLoginAt` on users, for staff management |
+| `backend/setup/migrations/004-audit-log-indexes.js` | Indexes so the audit log reads newest-first without sorting the whole collection |
 | `backend/setup/seed-data/*.json` | The synthetic seed dataset (users, patients, appointments) |
 | `backend/setup/seed.js` | Loads the dataset and splits `backend/docs/*.md` into FAQ sections |
 
@@ -401,6 +404,24 @@ The AI never gets direct database access. Medical data such as lab values is not
 - **Brute-force protection.** Failed logins are limited to 10 per 15 minutes per IP; chat is limited to 20 questions per minute per user.
 - **Safe startup.** The server refuses to start if `MONGO_URI` or `JWT_SECRET` is missing, with a clear message.
 - **No secrets in the repo.** API keys live only in `backend/.env`, which is git-ignored.
+
+---
+
+## Performance
+
+Measured on the same MongoDB Atlas database before and after optimising (median of 5 calls; frontend on a throttled ~10 Mbps connection).
+
+| What | Before | After | Change |
+|---|---|---|---|
+| `GET /api/appointments` | 192 ms, 63 KB | 102 ms, 4.7 KB | One `$lookup` instead of `populate` (one database round trip, not two), lean results, gzip |
+| `GET /api/patients` | 109 ms, 44 KB | 76 ms, 4.9 KB | `.lean()` (plain objects), gzip |
+| `GET /api/audit-logs` | 100 ms | 43 ms | One `$lookup` for patient names; indexes on `createdAt` (migration 004) |
+| Any logged-in request | +1 DB round trip | usually 0 | Account check cached for 30 s, cleared the moment an admin changes that account |
+| `POST /api/auth/login` | 153 ms | 99 ms | "Last login" time saved without making the user wait |
+| JavaScript for the login page | 422 KB | 287 KB | Pages load on demand (`React.lazy`), React in its own cacheable file |
+| Login → patient list visible | ~920 ms | ~545 ms | No 300 ms search debounce on the first load; other pages preloaded when the browser is idle |
+
+The opening gate is plain HTML and CSS inside `frontend/index.html`, so it paints before any JavaScript downloads. Its doors open only after the app has rendered, so it covers loading time instead of adding to it. It shows once per browser tab, can be skipped with a click, Enter or Escape, and becomes a short fade for users who prefer reduced motion.
 
 ---
 
