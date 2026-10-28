@@ -118,6 +118,44 @@ The frontend forwards `/api` requests to the backend (see `frontend/vite.config.
 
 ---
 
+## Deployment (Render + Vercel)
+
+The backend runs on **Render** and the frontend on **Vercel**. Deploy the backend first, because the frontend needs its URL.
+
+**1. MongoDB Atlas:** Network Access → allow `0.0.0.0/0` (Render's IP addresses change). Seed once from your machine with `npm run seed` in `backend/`.
+
+**2. Render (backend):** New → Web Service → connect this repo.
+
+| Setting | Value |
+|---|---|
+| Root Directory | `backend` |
+| Runtime | Node |
+| Build Command | `npm install` |
+| Start Command | `npm start` |
+| Health Check Path | `/api/health` |
+| Environment | `MONGO_URI`, `JWT_SECRET`, `GROQ_API_KEY`, `GROQ_MODEL=openai/gpt-oss-20b`, `CLIENT_ORIGIN=https://<your-app>.vercel.app` |
+
+Render sets `PORT` itself. `MONGO_URI_TEST` is only for tests and isn't needed.
+
+**3. Vercel (frontend):** Add New → Project → import this repo.
+
+| Setting | Value |
+|---|---|
+| Root Directory | `frontend` |
+| Framework Preset | Vite |
+| Install Command | `npm install` |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+| Environment | `VITE_API_BASE_URL=https://<your-service>.onrender.com/api` |
+
+`frontend/vercel.json` sends every page (e.g. `/patients`) to `index.html`, so refreshing a page doesn't 404.
+
+**4.** Once Vercel gives you the final URL, put it in Render's `CLIENT_ORIGIN` (comma-separate several, e.g. a custom domain) and redeploy the backend.
+
+> Render's free tier sleeps after 15 minutes idle; the first request after that can take about 50 seconds.
+
+---
+
 ## Architecture
 
 ```mermaid

@@ -4,7 +4,8 @@
 import axios from 'axios';
 import { getToken, clearSession } from './session';
 
-const api = axios.create({ baseURL: '/api', timeout: 20000 });
+// Locally, Vite forwards /api to the backend. When hosted (e.g. on Vercel), VITE_API_BASE_URL points at the backend.
+const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || '/api', timeout: 20000 });
 
 api.interceptors.request.use((config) => {
   const token = getToken();

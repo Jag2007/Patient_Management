@@ -9,8 +9,11 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
+// On Render (and most hosts) requests arrive through a proxy; trust it so rate limits see each user's real IP.
+app.set('trust proxy', 1);
+
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
+app.use(cors({ origin: (process.env.CLIENT_ORIGIN || 'http://localhost:5173').split(',') }));
 app.use(express.json({ limit: '10kb' }));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
