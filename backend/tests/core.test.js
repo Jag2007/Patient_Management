@@ -1,9 +1,10 @@
-// Core API tests: login, patient create/edit/validation, appointment date rules, safe cancellation,
+// Core API tests: login, patient create/edit/validation, appointment date rules, appointment edit, safe cancellation,
 // permissions and the login rate limit.
 // They call the real Express routes with Supertest against the test database.
 const { app, request, setupTestDb, loginAs, closeTestDb } = require('./helpers');
 const AuditLog = require('../models/AuditLog');
 const FaqSection = require('../models/FaqSection');
+const judgeService = require('../services/judgeService');
 
 const DAY = 24 * 60 * 60 * 1000;
 let staffToken;
@@ -115,6 +116,42 @@ describe('Appointments', () => {
     expect(first.status).toBe(200);
     expect(first.body.status).toBe('cancelled');
     expect(second.status).toBe(409);
+    expect(await AuditLog.countDocuments({ action: 'appointment.cancel', patientId: patient.patientId })).toBe(1);
+  });
+
+  test('edits clinician and reason, ignores the patient and status, and writes an audit entry', async () => {
+    const patient = await createPatient();
+    const created = await asStaff(request(app).post('/api/appointments')).send(
+      appointmentFor(patient.patientId, new Date(Date.now() + 7 * DAY).toISOString())
+    );
+
+    const res = await asStaff(request(app).put(`/api/appointments/${created.body._id}`)).send({
+      clinician: 'Dr. New',
+      reason: 'Follow-up',
+      status: 'completed',
+      patient: '000000000000000000000000',
+    });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ clinician: 'Dr. New', reason: 'Follow-up', status: 'scheduled' });
+    expect(res.body.patient.patientId).toBe(patient.patientId);
+    expect(await AuditLog.countDocuments({ action: 'appointment.update', patientId: patient.patientId })).toBe(1);
+  });
+
+  test('rejects an edit to a past date, an empty edit, and editing a cancelled appointment', async () => {
+    const patient = await createPatient();
+    const created = await asStaff(request(app).post('/api/appointments')).send(
+      appointmentFor(patient.patientId, new Date(Date.now() + 7 * DAY).toISOString())
+    );
+    const url = `/api/appointments/${created.body._id}`;
+
+    const pastDate = await asStaff(request(app).put(url)).send({ dateTime: new Date(Date.now() - DAY).toISOString() });
+    expect(pastDate.status).toBe(400);
+    const empty = await asStaff(request(app).put(url)).send({});
+    expect(empty.status).toBe(400);
+
+    await asStaff(request(app).patch(`${url}/cancel`));
+    const afterCancel = await asStaff(request(app).put(url)).send({ reason: 'Too late' });
+    expect(afterCancel.status).toBe(409);
   });
 });
 
@@ -169,5 +206,13 @@ describe('Login rate limit', () => {
     }
     expect(statuses).toContain(401);
     expect(statuses.at(-1)).toBe(429);
+  });
+});
+
+describe('LLM judge verdict parsing', () => {
+  test('reads a valid verdict and rejects anything else', () => {
+    expect(judgeService.parseVerdict('{"answers_question": true, "grounded": false, "reason": "x"}')).toMatchObject({ grounded: false });
+    expect(judgeService.parseVerdict('Looks fine to me')).toBeNull();
+    expect(judgeService.parseVerdict('{"grounded": "yes"}')).toBeNull();
   });
 });
