@@ -7,8 +7,9 @@ async function logAction(user, action, patientId) {
   await AuditLog.create({ username: user.username, action, patientId });
 }
 
-async function listRecent(limit = 100) {
-  return AuditLog.find().sort({ createdAt: -1 }).limit(limit);
+async function listRecent(patientId, limit = 200) {
+  const filter = /^P-\d{4}$/.test(patientId || '') ? { patientId } : {};
+  return AuditLog.find(filter).sort({ createdAt: -1 }).limit(limit);
 }
 
 module.exports = { logAction, listRecent };

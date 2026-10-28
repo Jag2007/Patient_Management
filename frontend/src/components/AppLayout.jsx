@@ -1,9 +1,10 @@
-// Page frame shown after login: top menu, current user and role, and a logout button (with confirmation).
+// Page frame shown after login: brand, top menu, current user, and a logout button (with confirmation).
 // The Audit Log menu item is shown only to admins; this is for convenience, not security.
-import { Layout, Menu, Button, Popconfirm, Tag, Typography } from 'antd';
-import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { Avatar, Button, Layout, Menu, Popconfirm, Tag, Typography } from 'antd';
+import { AuditOutlined, CalendarOutlined, LogoutOutlined, MedicineBoxFilled, TeamOutlined } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getSession, clearSession } from '../api/session';
+import { colors } from '../theme';
 
 const { Header, Content } = Layout;
 
@@ -13,9 +14,9 @@ export default function AppLayout() {
   const { user } = getSession();
 
   const items = [
-    { key: '/patients', label: 'Patients' },
-    { key: '/appointments', label: 'Appointments' },
-    ...(user.role === 'admin' ? [{ key: '/audit-logs', label: 'Audit Log' }] : []),
+    { key: '/patients', label: 'Patients', icon: <TeamOutlined /> },
+    { key: '/appointments', label: 'Appointments', icon: <CalendarOutlined /> },
+    ...(user.role === 'admin' ? [{ key: '/audit-logs', label: 'Audit Log', icon: <AuditOutlined /> }] : []),
   ];
 
   function logout() {
@@ -25,22 +26,37 @@ export default function AppLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-        <Typography.Text strong style={{ color: '#fff', fontSize: 16, whiteSpace: 'nowrap' }}>
-          Patient Management
-        </Typography.Text>
+      <Header
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 24,
+          borderBottom: `1px solid ${colors.border}`,
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
+          <Avatar shape="square" style={{ background: colors.primary }} icon={<MedicineBoxFilled />} />
+          <Typography.Text strong style={{ fontSize: 16 }}>
+            Patient Management
+          </Typography.Text>
+        </div>
         <Menu
-          theme="dark"
           mode="horizontal"
           selectedKeys={[location.pathname]}
           items={items}
           onClick={({ key }) => navigate(key)}
-          style={{ flex: 1, minWidth: 0 }}
+          style={{ flex: 1, minWidth: 0, borderBottom: 'none' }}
         />
-        <Typography.Text style={{ color: '#fff', whiteSpace: 'nowrap' }}>
-          <UserOutlined /> {user.username}
-        </Typography.Text>
-        {user.role !== user.username && <Tag color={user.role === 'admin' ? 'gold' : 'blue'}>{user.role}</Tag>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+          <Avatar style={{ background: colors.primaryTint, color: colors.primary }}>
+            {user.username[0].toUpperCase()}
+          </Avatar>
+          <Typography.Text>{user.username}</Typography.Text>
+          {user.role !== user.username && <Tag color={user.role === 'admin' ? 'gold' : 'blue'}>{user.role}</Tag>}
+        </div>
         <Popconfirm
           title="Log out?"
           description="Are you sure you want to log out?"
@@ -52,7 +68,7 @@ export default function AppLayout() {
           <Button icon={<LogoutOutlined />}>Logout</Button>
         </Popconfirm>
       </Header>
-      <Content style={{ padding: 24, maxWidth: 1200, width: '100%', margin: '0 auto' }}>
+      <Content style={{ padding: '28px 24px', maxWidth: 1200, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         <Outlet />
       </Content>
     </Layout>

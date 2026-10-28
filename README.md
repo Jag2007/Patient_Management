@@ -172,7 +172,7 @@ Schemas live in `backend/models/`. Running `npm run seed` creates the collection
 | POST | `/api/appointments` | admin, staff | Create an appointment |
 | PATCH | `/api/appointments/:id/cancel` | admin, staff | Cancel an appointment |
 | POST | `/api/chat` | admin, staff | Ask the AI assistant |
-| GET | `/api/audit-logs` | admin | View the audit log |
+| GET | `/api/audit-logs?patientId=` | admin | View the audit log, or one patient's activity |
 
 ---
 
