@@ -111,25 +111,25 @@ Schema and indexes are created by [migrations](backend/setup/migrations/) (`make
 ## Tests and evaluation
 
 ```bash
-make test    # 54 tests: auth and refresh tokens, patients, appointments, staff, AI tools, chat guardrails
-make eval    # golden set against the real model; results in backend/eval/RESULTS.md
+make test    # 54 tests, LLM mocked
+make eval    # golden set, real model
 ```
 
-**Mocked LLM:** in the tests, `jest.mock` replaces `llmService.chat` with a fake function that returns replies we script: a normal JSON answer, a tool request, broken JSON, a made-up source, a timeout. Nothing goes over the network, so tests are free, fast and give the same result every run, and they can check how the backend handles a model that misbehaves (which the real model rarely does on demand). The real model is measured separately by `make eval`.
-
-**Golden set:** 38 real questions with reference answers (clinic FAQ, patient details and appointments, multi-turn follow-ups, and questions it must decline), scored against the real model. Last run: **37/38 correct (97.4%)**, 100% of answers cited the right source, 100% of unsafe or unanswerable questions declined, about 2 s per question. The one miss and the weak spots are explained in [`backend/eval/RESULTS.md`](backend/eval/RESULTS.md).
+- **Tests:** auth and refresh tokens, patients, appointments, staff, AI tools, chat guardrails. Run on `MONGO_URI_TEST`.
+- **Mocked LLM:** `jest.mock` swaps the Groq call for scripted replies (good answer, tool request, broken JSON, fake source, timeout). No network, free, same result every run.
+- **Golden set:** 38 questions with reference answers. Last run **37/38 (97.4%)**, 100% correct sources, 100% correct declines, ~2 s per question. Details in [RESULTS.md](backend/eval/RESULTS.md).
 
 ---
 
 ## Known limitations
 
-| Area | Limitation | Impact | Planned improvement |
-|---|---|---|---|
-| Retrieval | Keyword search (MongoDB `$text`), no embeddings | Misses synonyms and paraphrases ("fees" vs "billing"), so some answerable questions get the fallback | Hybrid search: Atlas Vector Search embeddings plus the current keyword score |
-| Answers | Responses arrive whole, not streamed | The user waits for the answer and the judge check (two LLM calls) | Stream progress states over SSE; keep the answer itself checked before display |
-| Chat memory | Only the last 6 messages are sent to the model | References to much older turns can't be resolved | Rolling summary of older turns stored on the conversation |
-| Access control | Every staff member can see every patient | No per-clinician data separation | Assign patients to clinicians and check ownership in services and AI tools |
-| Sessions | The access token lives in localStorage; the 30 s account cache is per server process | An XSS bug could read the 15-minute token; with several servers a disabled user may keep access for up to 30 s | Keep the access token in memory only; move the cache to Redis or drop it |
-| Safety filter | Diagnosis and injection refusal is regex-based | Rephrased requests can slip past the first check (the prompt and judge remain) | Add a moderation model before the main call |
-| Cost and limits | Groq free tier (~8,000 tokens per minute); up to 4 LLM calls per question | Bursts of questions get a "busy" message | Paid tier, caching of common FAQ answers |
-| Notifications | No patient notification on cancellation | Patients aren't told automatically | Send a WhatsApp/SMS message from `cancelAppointment` after the transaction commits, retried from a queue so a messaging failure never undoes a cancellation |
+| Limitation | Next step |
+|---|---|
+| Keyword search, no embeddings: misses synonyms ("fees" vs "billing") | Hybrid search with Atlas Vector Search |
+| Answers aren't streamed (the judge checks the full answer first) | Stream progress states over SSE |
+| Only the last 6 chat messages reach the model | Rolling summary of older turns |
+| Every staff member can see every patient | Assign patients to clinicians |
+| Access token in localStorage; 30 s account cache is per server | Token in memory only; shared cache (Redis) |
+| Diagnosis and injection checks are regex-based | Moderation model before the main call |
+| Groq free tier (~8k tokens/min), up to 4 LLM calls per question | Paid tier, cache common FAQ answers |
+| No patient notification on cancellation | WhatsApp/SMS after the cancel commits, via a retry queue |
