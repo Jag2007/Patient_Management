@@ -1,9 +1,14 @@
-// Builds the Express app: security middleware, gzip compression, routes, and the error handler (always last).
+// Builds the Express app: security middleware, gzip compression, Swagger docs at /api/docs, routes,
+// and the error handler (always last).
 // It does not start listening, so tests can import it with Supertest without opening a port.
 // server.js connects the database and starts the app.
 const express = require('express');
 const compression = require('compression');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yaml');
 const helmet = require('helmet');
 const { requireLogin } = require('./middleware/auth');
 const errorHandler = require('./middleware/errorHandler');
@@ -17,6 +22,9 @@ app.use(helmet());
 app.use(compression()); // gzip responses: e.g. the appointments list shrinks from ~63 KB to ~6 KB
 app.use(cors({ origin: (process.env.CLIENT_ORIGIN || 'http://localhost:5173').split(',') }));
 app.use(express.json({ limit: '10kb' }));
+
+const openapi = YAML.parse(fs.readFileSync(path.join(__dirname, 'openapi.yaml'), 'utf8'));
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapi, { customSiteTitle: 'Patient Management API' }));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', require('./routes/authRoutes'));

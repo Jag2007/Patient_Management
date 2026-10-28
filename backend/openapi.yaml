@@ -1,0 +1,337 @@
+# API reference for the Patient Management backend (OpenAPI 3).
+# Served as interactive Swagger docs at /api/docs (see app.js).
+# Log in with POST /auth/login, then click "Authorize" and paste the token to try the other endpoints.
+openapi: 3.0.3
+info:
+  title: Patient Management API
+  version: 1.0.0
+  description: Clinic staff API for patients, appointments, the AI assistant, staff accounts and the audit log. All data is fictional.
+servers:
+  - url: /api
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+  - name: Patients
+  - name: Appointments
+  - name: AI Assistant
+  - name: Admin
+    description: Admin only. Staff get 403.
+
+paths:
+  /health:
+    get:
+      tags: [Auth]
+      summary: Check the server is up
+      security: []
+      responses:
+        '200': { description: OK, content: { application/json: { example: { status: ok } } } }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in and get a token
+      description: Wrong username and wrong password give the same error. 10 failed attempts per 15 minutes per IP.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string, example: admin }
+                password: { type: string, example: Admin@123 }
+      responses:
+        '200':
+          description: Logged in
+          content:
+            application/json:
+              example: { token: eyJhbGciOi..., user: { username: admin, role: admin } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { description: Account disabled, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: Too many failed attempts }
+
+  /patients:
+    get:
+      tags: [Patients]
+      summary: List patients, or search by name or ID
+      parameters:
+        - { name: search, in: query, schema: { type: string }, example: sneha }
+      responses:
+        '200': { description: Up to 500 patients, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Patient' } } } } }
+    post:
+      tags: [Patients]
+      summary: Create a patient (the ID is generated)
+      requestBody: { $ref: '#/components/requestBodies/PatientInput' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Patient' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+
+  /patients/{patientId}:
+    parameters:
+      - { name: patientId, in: path, required: true, schema: { type: string }, example: P-0007 }
+    get:
+      tags: [Patients]
+      summary: View a patient (writes an audit entry)
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Patient' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [Patients]
+      summary: Edit a patient
+      requestBody: { $ref: '#/components/requestBodies/PatientInput' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Patient' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /appointments:
+    get:
+      tags: [Appointments]
+      summary: List appointments, newest first
+      parameters:
+        - { name: patientId, in: query, schema: { type: string }, example: P-0003 }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Appointment' } } } } }
+    post:
+      tags: [Appointments]
+      summary: Book an appointment
+      description: The date must be in the future and within one year.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patientId, dateTime, clinician, reason]
+              properties:
+                patientId: { type: string, example: P-0003 }
+                dateTime: { type: string, format: date-time }
+                clinician: { type: string, example: Dr. Kavya Iyer }
+                reason: { type: string, example: Follow-up visit }
+      responses:
+        '201': { description: Booked, content: { application/json: { schema: { $ref: '#/components/schemas/Appointment' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+
+  /appointments/{id}:
+    put:
+      tags: [Appointments]
+      summary: Edit a scheduled appointment's date/time, clinician or reason
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dateTime: { type: string, format: date-time }
+                clinician: { type: string }
+                reason: { type: string }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Appointment' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { description: Not scheduled (already cancelled or completed) }
+
+  /appointments/{id}/cancel:
+    patch:
+      tags: [Appointments]
+      summary: Cancel a scheduled appointment
+      description: The cancellation and its audit entry are saved in one transaction. A second cancel gets 409.
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: Cancelled, content: { application/json: { schema: { $ref: '#/components/schemas/Appointment' } } } }
+        '409': { description: Only scheduled appointments can be cancelled }
+
+  /chat:
+    post:
+      tags: [AI Assistant]
+      summary: Ask the AI assistant
+      description: Leave out conversationId to start a new chat. 20 questions per minute per user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question: { type: string, maxLength: 500, example: What is the late cancellation fee? }
+                conversationId: { type: string }
+      responses:
+        '200':
+          description: Answer with backend-built sources
+          content:
+            application/json:
+              example:
+                answer: The late cancellation fee is 300 rupees.
+                sources: [{ id: S1, label: cancellation-policy.md (section 2) }]
+                verified: true
+                conversationId: 6ae1f5c6a54d4e5db35473ef
+        '400': { $ref: '#/components/responses/Error' }
+        '429': { description: Too many questions }
+        '502': { description: AI unavailable }
+        '503': { description: AI busy or not configured }
+        '504': { description: AI took too long }
+
+  /chat/conversations:
+    get:
+      tags: [AI Assistant]
+      summary: List your saved chats
+      responses:
+        '200': { description: OK, content: { application/json: { example: [{ _id: 6ae1f5c6a54d4e5db35473ef, title: Show me the details of Sneha Reddy, updatedAt: '2026-10-28T13:17:06.406Z' }] } } }
+
+  /chat/conversations/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [AI Assistant]
+      summary: Open one of your chats
+      responses:
+        '200': { description: The chat with all its messages }
+        '404': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [AI Assistant]
+      summary: Delete one of your chats
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /documents:
+    get:
+      tags: [Admin]
+      summary: The clinic documents the AI answers from, by file and section
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /audit-logs:
+    get:
+      tags: [Admin]
+      summary: Latest audit entries, or one patient's activity
+      parameters:
+        - { name: patientId, in: query, schema: { type: string }, example: P-0007 }
+      responses:
+        '200': { description: OK, content: { application/json: { example: [{ username: staff, action: patient.view, patientId: P-0007, patientName: Sneha Reddy, createdAt: '2026-10-28T13:17:06.406Z' }] } } }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /users:
+    get:
+      tags: [Admin]
+      summary: List staff and admin accounts
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/User' } } } } }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Admin]
+      summary: Create a staff login
+      description: Always role staff. Password needs 8+ characters with a letter and a number.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string, example: nurse.asha }
+                password: { type: string, example: Welcome123 }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { description: Username already taken }
+
+  /users/{id}/password:
+    put:
+      tags: [Admin]
+      summary: Reset a staff password
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [password], properties: { password: { type: string } } } } }
+      responses:
+        '204': { description: Reset }
+        '403': { description: Admin accounts can't be changed here }
+
+  /users/{id}/active:
+    patch:
+      tags: [Admin]
+      summary: Disable or enable a staff login
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [active], properties: { active: { type: boolean } } } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '403': { description: Admin accounts can't be changed here }
+
+  /users/{id}:
+    delete:
+      tags: [Admin]
+      summary: Delete a staff login
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '204': { description: Deleted }
+        '403': { description: Admin accounts can't be changed here }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: string }, description: MongoDB ID }
+  requestBodies:
+    PatientInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [name, dateOfBirth, phone]
+            properties:
+              name: { type: string, example: Sneha Reddy }
+              dateOfBirth: { type: string, format: date, example: '1988-09-09' }
+              phone: { type: string, example: '9876543216' }
+              email: { type: string, example: sneha.reddy@example.com }
+              address: { type: string, example: '6 Kukatpally, Hyderabad' }
+  responses:
+    Error:
+      description: Error
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    ValidationError:
+      description: Invalid input, with a message per field
+      content:
+        application/json:
+          example: { error: Please fix the highlighted fields, fields: { phone: Phone must be 10 to 13 digits } }
+  schemas:
+    Error:
+      type: object
+      properties: { error: { type: string, example: You do not have permission to do this } }
+    Patient:
+      type: object
+      properties:
+        patientId: { type: string, example: P-0007 }
+        name: { type: string, example: Sneha Reddy }
+        dateOfBirth: { type: string, format: date-time }
+        phone: { type: string, example: '9876543216' }
+        email: { type: string, example: sneha.reddy@example.com }
+        address: { type: string, example: '6 Kukatpally, Hyderabad' }
+    Appointment:
+      type: object
+      properties:
+        _id: { type: string }
+        patient: { type: object, properties: { patientId: { type: string }, name: { type: string } } }
+        dateTime: { type: string, format: date-time }
+        clinician: { type: string, example: Dr. Anita Joshi }
+        reason: { type: string, example: Dermatology follow-up }
+        status: { type: string, enum: [scheduled, completed, cancelled] }
+    User:
+      type: object
+      properties:
+        _id: { type: string }
+        username: { type: string, example: staff }
+        role: { type: string, enum: [admin, staff] }
+        active: { type: boolean }
+        lastLoginAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }

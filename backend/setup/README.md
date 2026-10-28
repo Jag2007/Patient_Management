@@ -10,6 +10,7 @@ setup/
 │   ├── 002-chat-history.js     # conversations (AI chat history) + index
 │   ├── 003-staff-accounts.js   # users.active + users.lastLoginAt (staff management)
 │   └── 004-audit-log-indexes.js # audit_logs indexes for newest-first reads
+├── init-env.js             # creates backend/.env (make env)
 ├── seed.js                 # loads seed-data/ and the FAQ docs into the database
 └── seed-data/
     ├── users.json          # 2 demo logins (admin, staff)
@@ -41,7 +42,7 @@ MONGO_URI_TEST=mongodb://127.0.0.1:27017/patient_management_test
 
 Atlas is a replica set, so appointment edits and cancellations run inside a real transaction. A plain local `mongod` does not support transactions; the app then saves the same writes without one (each single-document update is still atomic). To get transactions locally, start `mongod --replSet rs0` and run `mongosh --eval "rs.initiate()"` once.
 
-Put both values in `backend/.env` (copy `.env.example` from the repo root).
+Run `make env` from the repo root (or `npm run init-env` in `backend/`) and paste the URI when asked. It writes `backend/.env`, generates `JWT_SECRET`, and sets `MONGO_URI_TEST` to the same cluster with `_test` added to the database name.
 
 ## 2. Create the schema and load the demo data
 
