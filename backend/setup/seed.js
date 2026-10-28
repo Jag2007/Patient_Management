@@ -1,4 +1,4 @@
-// Fills the database with demo data from setup/seed-data/: 2 users, 100 fictional patients, 135 appointments,
+// Fills the database with demo data from setup/seed-data/: 2 users, 150 fictional patients (100 Hyderabad, 50 Bangalore), 198 appointments,
 // plus the FAQ sections the AI searches. Appointment dates are stored as "days from today", so the demo always
 // has both past and upcoming visits. It wipes these collections first, so every run gives the same clean start.
 // FAQ files in backend/docs are split into paragraphs; each paragraph becomes one searchable FaqSection.

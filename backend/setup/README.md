@@ -7,12 +7,13 @@ setup/
 ├── migrate.js              # runs the migrations below, each one only once
 ├── migrations/
 │   ├── 001-initial-schema.js   # users, patients, appointments, audit_logs, faq_sections + indexes
-│   └── 002-chat-history.js     # conversations (AI chat history) + index
+│   ├── 002-chat-history.js     # conversations (AI chat history) + index
+│   └── 003-staff-accounts.js   # users.active + users.lastLoginAt (staff management)
 ├── seed.js                 # loads seed-data/ and the FAQ docs into the database
 └── seed-data/
     ├── users.json          # 2 demo logins (admin, staff)
-    ├── patients.json       # 100 fictional patients (P-0001 … P-0100)
-    └── appointments.json   # 135 appointments; dates are "days from today" so there are always past and upcoming visits
+    ├── patients.json       # 150 fictional patients: P-0001 … P-0100 in Hyderabad, P-0101 … P-0150 in Bangalore
+    └── appointments.json   # 198 appointments; dates are "days from today" so there are always past and upcoming visits
 ```
 
 All data is synthetic. Names, phone numbers (98765432xx) and emails (`@example.com`) are invented.
@@ -67,7 +68,7 @@ mongosh "$MONGO_URI" --eval '
   })'
 ```
 
-Expected: 2 users, 100 patients, 135 appointments, 15 FAQ sections, 2 migrations.
+Expected: 2 users, 150 patients, 198 appointments, 15 FAQ sections, 3 migrations.
 
 Other useful commands:
 
