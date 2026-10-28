@@ -18,6 +18,13 @@ export const colors = {
   ai: '#6B5B95',
 };
 
+// Status tags use a light background with a clear, darker text colour, so they stay easy to read.
+export const statusColors = {
+  scheduled: { background: '#EAF3FD', border: '#B9D6F5', text: '#1C5FA8' },
+  completed: { background: '#E8F7EE', border: '#B4E1C5', text: '#1D7A46' },
+  cancelled: { background: '#FDEEEC', border: '#F4C3BC', text: '#B23A2D' },
+};
+
 export const theme = {
   token: {
     colorPrimary: colors.primary,

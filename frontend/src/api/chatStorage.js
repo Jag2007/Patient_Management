@@ -1,7 +1,8 @@
-// Keeps the AI chat (messages and the unsent question) while you move between pages.
+// Remembers the open AI chat (its ID, messages and the unsent question) while you move between pages.
 // Uses sessionStorage, so it lasts only for this browser tab and is wiped on logout (see session.js).
+// The full chat history itself is stored on the server; this only avoids reloading it on every page switch.
 const KEY = 'chat';
-const EMPTY = { messages: [], draft: '' };
+const EMPTY = { conversationId: null, messages: [], draft: '' };
 
 export function loadChat() {
   try {

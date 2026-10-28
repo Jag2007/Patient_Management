@@ -77,3 +77,24 @@ body {
   .page-enter, .bubble-in, .typing span, .ecg-line, .stat-card { animation: none; transition: none; }
   .ecg-line { stroke-dashoffset: 0; }
 }
+
+/* AI assistant: chat history on the left, the chat on the right (stacked on small screens). */
+.chat-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 991px) {
+  .chat-layout { grid-template-columns: 1fr; }
+}
+.chat-history-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.chat-history-item:hover { background: #f4f2ec; }
+.chat-history-item.active { background: #e7f0eb; }

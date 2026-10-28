@@ -1,14 +1,15 @@
 // Admin-only page listing audit entries: who did what to which patient, and when.
-// Actions are shown as readable labels with filters; each row shows the patient's name and ID,
+// Actions are shown as readable labels with filters (by user and activity) and sorting by time; each row shows the patient's name and ID,
 // and clicking a patient opens their details and full activity.
 // Staff never see this menu item, and the backend returns 403 if they call the API directly.
 import { useEffect, useState } from 'react';
-import { Alert, Button, Card, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Table, Typography } from 'antd';
 import dayjs from 'dayjs';
 import api, { errorMessage } from '../api/client';
 import PageHeader from '../components/PageHeader';
 import PatientActivityDrawer from '../components/PatientActivityDrawer';
 import { ACTIVITY, activityInfo } from '../components/activity';
+import { SoftTag } from '../components/SoftTag';
 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState([]);
@@ -30,6 +31,9 @@ export default function AuditLogsPage() {
     {
       title: 'Time',
       dataIndex: 'createdAt',
+      sorter: (a, b) => dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf(),
+      defaultSortOrder: 'descend',
+      sortDirections: ['descend', 'ascend', 'descend'],
       render: (value) => (
         <>
           <Typography.Text>{dayjs(value).format('DD MMM YYYY')}</Typography.Text>
@@ -52,9 +56,9 @@ export default function AuditLogsPage() {
       render: (action) => {
         const info = activityInfo(action);
         return (
-          <Tag icon={info.icon} color={info.color} variant="outlined">
+          <SoftTag icon={info.icon} color={info.color}>
             {info.label}
-          </Tag>
+          </SoftTag>
         );
       },
     },

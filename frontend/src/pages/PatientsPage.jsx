@@ -1,9 +1,10 @@
-// Patients list with search by name or ID, plus actions to view, edit and create patients.
-// Search runs automatically 300 ms after the user stops typing (debounce), so we don't call the API on every key.
+// Patients list with search by name or ID, a filter bar (age group, area, email) and "Sort by", plus actions to view,
+// edit and create patients. Search runs on the backend 300 ms after the user stops typing (debounce), so we don't
+// call the API on every key; sorting and filters then work on the loaded list in the browser.
 // Viewing a patient calls the backend (GET /patients/:id), which records an audit entry.
 // Admins also get "Activity", which opens that patient's audit history in a side drawer.
 import { useCallback, useEffect, useState } from 'react';
-import { App, Avatar, Button, Card, Descriptions, Input, Modal, Space, Table, Typography } from 'antd';
+import { App, Avatar, Button, Card, Descriptions, Input, Modal, Select, Space, Table, Typography } from 'antd';
 import { EditOutlined, EyeOutlined, HistoryOutlined, PlusOutlined, SearchOutlined, TeamOutlined, SmileOutlined, UserOutlined, HeartOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api, { errorMessage } from '../api/client';
@@ -11,6 +12,7 @@ import { getSession } from '../api/session';
 import PageHeader from '../components/PageHeader';
 import PatientFormModal from '../components/PatientFormModal';
 import PatientActivityDrawer from '../components/PatientActivityDrawer';
+import FilterBar from '../components/FilterBar';
 import StatCard from '../components/StatCard';
 import StatRow from '../components/StatRow';
 import { colors } from '../theme';
@@ -24,6 +26,35 @@ function initials(name) {
     .toUpperCase();
 }
 
+const age = (p) => dayjs().diff(p.dateOfBirth, 'year');
+const added = (p) => dayjs(p.createdAt).valueOf();
+
+const SORTS = {
+  id: { label: 'Patient ID', compare: (a, b) => a.patientId.localeCompare(b.patientId) },
+  newest: { label: 'Newest added first', compare: (a, b) => added(b) - added(a) || b.patientId.localeCompare(a.patientId) },
+  oldest: { label: 'Oldest added first', compare: (a, b) => added(a) - added(b) || a.patientId.localeCompare(b.patientId) },
+  nameAz: { label: 'Name: A to Z', compare: (a, b) => a.name.localeCompare(b.name) },
+  nameZa: { label: 'Name: Z to A', compare: (a, b) => b.name.localeCompare(a.name) },
+  youngest: { label: 'Age: youngest first', compare: (a, b) => dayjs(b.dateOfBirth).valueOf() - dayjs(a.dateOfBirth).valueOf() },
+  eldest: { label: 'Age: oldest first', compare: (a, b) => dayjs(a.dateOfBirth).valueOf() - dayjs(b.dateOfBirth).valueOf() },
+};
+
+const AGE_GROUPS = {
+  child: { label: 'Children (under 18)', test: (years) => years < 18 },
+  adult: { label: 'Adults (18–59)', test: (years) => years >= 18 && years < 60 },
+  senior: { label: 'Seniors (60+)', test: (years) => years >= 60 },
+};
+
+// "12 MG Road, Hyderabad" -> "MG Road"; "11 Secunderabad" -> "Secunderabad".
+function areaOf(patient) {
+  return (patient.address || '')
+    .split(',')[0]
+    .replace(/^\d+\s*/, '')
+    .trim();
+}
+
+const NO_FILTERS = { ageGroup: null, area: null, email: null };
+
 export default function PatientsPage() {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -32,6 +63,8 @@ export default function PatientsPage() {
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [activityFor, setActivityFor] = useState(null);
+  const [filters, setFilters] = useState(NO_FILTERS);
+  const [sortBy, setSortBy] = useState('id');
   const { message } = App.useApp();
   const isAdmin = getSession()?.user?.role === 'admin';
 
@@ -47,7 +80,7 @@ export default function PatientsPage() {
         setLoading(false);
       }
     },
-    [message]
+    [message],
   );
 
   useEffect(() => {
@@ -115,7 +148,15 @@ export default function PatientsPage() {
     },
   ];
 
-  const ages = patients.map((p) => dayjs().diff(p.dateOfBirth, 'year'));
+  const ages = patients.map(age);
+  const setFilter = (name) => (value) => setFilters((prev) => ({ ...prev, [name]: value ?? null }));
+  const areas = [...new Set(patients.map(areaOf).filter(Boolean))].sort();
+  const filtersActive = Object.values(filters).some(Boolean);
+  const visible = patients
+    .filter((p) => !filters.ageGroup || AGE_GROUPS[filters.ageGroup].test(age(p)))
+    .filter((p) => !filters.area || areaOf(p) === filters.area)
+    .filter((p) => !filters.email || (filters.email === 'yes') === Boolean(p.email))
+    .sort(SORTS[sortBy].compare);
 
   return (
     <>
@@ -124,14 +165,7 @@ export default function PatientsPage() {
         subtitle="Search, view and update patient records"
         actions={
           <>
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder="Search by name or ID (e.g. P-0003)"
-              allowClear
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ width: 300 }}
-            />
+            <Input prefix={<SearchOutlined />} placeholder="Search by name or ID (e.g. P-0003)" allowClear value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 300 }} />
             <Button type="primary" icon={<PlusOutlined />} onClick={() => openForm()}>
               New patient
             </Button>
@@ -146,8 +180,39 @@ export default function PatientsPage() {
         <StatCard icon={<HeartOutlined />} label="Seniors (60+)" value={ages.filter((age) => age >= 60).length} color={colors.ai} />
       </StatRow>
 
+      <FilterBar shown={visible.length} total={patients.length} filtersActive={filtersActive} onClear={() => setFilters(NO_FILTERS)}>
+        <Select
+          placeholder="All ages"
+          allowClear
+          value={filters.ageGroup}
+          onChange={setFilter('ageGroup')}
+          options={Object.entries(AGE_GROUPS).map(([value, group]) => ({ value, label: group.label }))}
+          style={{ width: 190 }}
+        />
+        <Select placeholder="All areas" allowClear showSearch value={filters.area} onChange={setFilter('area')} options={areas.map((area) => ({ value: area, label: area }))} style={{ width: 170 }} />
+        <Select
+          placeholder="Email: any"
+          allowClear
+          value={filters.email}
+          onChange={setFilter('email')}
+          options={[
+            { value: 'yes', label: 'Has email' },
+            { value: 'no', label: 'No email' },
+          ]}
+          style={{ width: 140 }}
+        />
+        <Select value={sortBy} onChange={setSortBy} prefix="Sort by" options={Object.entries(SORTS).map(([value, sort]) => ({ value, label: sort.label }))} style={{ width: 250 }} />
+      </FilterBar>
+
       <Card styles={{ body: { padding: 0 } }}>
-        <Table rowKey="_id" columns={columns} dataSource={patients} loading={loading} scroll={{ x: 'max-content' }} pagination={{ defaultPageSize: 10, showSizeChanger: true, hideOnSinglePage: true }} />
+        <Table
+          rowKey="_id"
+          columns={columns}
+          dataSource={visible}
+          loading={loading}
+          scroll={{ x: 'max-content' }}
+          pagination={{ defaultPageSize: 10, showSizeChanger: true, hideOnSinglePage: true }}
+        />
       </Card>
 
       <PatientFormModal
