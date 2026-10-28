@@ -1,6 +1,4 @@
-// Core API tests: login, patient create/edit/validation, appointment date rules, appointment edit, safe cancellation,
-// permissions and the login rate limit.
-// They call the real Express routes with Supertest against the test database.
+// Core API tests with Supertest: login, patients, appointments, permissions, documents and the login rate limit.
 const { app, request, setupTestDb, loginAs, closeTestDb } = require('./helpers');
 const AuditLog = require('../models/AuditLog');
 const FaqSection = require('../models/FaqSection');

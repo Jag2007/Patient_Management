@@ -1,8 +1,5 @@
-// Fills the database with demo data from setup/seed-data/: 2 users, 150 fictional patients (100 Hyderabad, 50 Bangalore), 198 appointments,
-// plus the FAQ sections the AI searches. Appointment dates are stored as "days from today", so the demo always
-// has both past and upcoming visits. It wipes these collections first, so every run gives the same clean start.
-// FAQ files in backend/docs are split into paragraphs; each paragraph becomes one searchable FaqSection.
-// Run "npm run migrate" once before this (creates collections, validation rules and indexes).
+// Resets the demo data: users, patients and appointments from seed-data/, plus FAQ sections split from backend/docs.
+// Appointment dates are stored as days from today, so there are always past and upcoming visits. Run npm run migrate first.
 require('dotenv').config({ quiet: true });
 const fs = require('fs');
 const path = require('path');

@@ -1,6 +1,4 @@
-// Staff management tests: only admins can manage accounts, new staff can log in, weak passwords and duplicates
-// are rejected, admin accounts can't be changed, and a disabled or deleted account is locked out at once
-// (even with a token issued before it was disabled). Every change writes an audit entry.
+// Staff management tests: admin-only access, password and username rules, and disabled or deleted accounts locked out at once.
 const AuditLog = require('../models/AuditLog');
 const User = require('../models/User');
 const { app, request, setupTestDb, loginAs, closeTestDb } = require('./helpers');

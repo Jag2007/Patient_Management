@@ -1,7 +1,5 @@
-// AI assistant endpoints. Requires login (admin or staff).
-// POST /api/chat { question, conversationId? } asks a question; the question and checked answer are saved to that chat.
-// GET/DELETE /api/chat/conversations[/:id] list, open and delete the logged-in user's own chats (chat history).
-// Asking is rate limited to 20 questions per minute per user to protect against abuse and API cost.
+// AI assistant routes: ask a question, and list, open or delete your own chats. Calls conversationService.
+// Asking is limited to 20 questions a minute per user to keep API costs down.
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { requireRole } = require('../middleware/auth');

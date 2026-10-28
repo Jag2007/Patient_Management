@@ -1,8 +1,8 @@
-// Returns the clinic documents the AI assistant reads, grouped by file, exactly as stored in faq_sections.
-// Section numbers match the source tags shown under chat answers (e.g. "billing.md (section 2)").
-// Read by the admin-only Documents page.
+// Lists the clinic documents the AI reads, grouped by file, for the admin Documents page.
+// Section numbers match the source labels under chat answers, e.g. "billing.md (section 2)".
 const FaqSection = require('../models/FaqSection');
 
+// The seed stores each paragraph as "Title: text".
 function splitTitle(text) {
   const index = text.indexOf(': ');
   return index === -1 ? { title: '', body: text } : { title: text.slice(0, index), body: text.slice(index + 2) };

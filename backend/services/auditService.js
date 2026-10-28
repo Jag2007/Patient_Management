@@ -1,19 +1,17 @@
-// Records sensitive actions (view/create/update patient, create/edit/cancel appointment, AI tool use, staff account changes).
-// Stores only username, action and patient ID, so the log itself holds no personal details.
-// When an admin reads the log, current patient names are joined in (one $lookup) for display only, never stored.
-// Called by the other services and the AI tool; read by the admin-only audit route.
+// Writes and reads the audit log. Only the username, action and patient ID (or staff username) are stored.
 const AuditLog = require('../models/AuditLog');
 
-// Pass a session to save the entry inside the caller's transaction (see utils/withTransaction.js).
+// Pass a session to write the entry inside the caller's transaction.
 async function logAction(user, action, patientId, session) {
   await AuditLog.create([{ username: user.username, action, patientId }], { session });
 }
 
-// For staff-account changes made by an admin: records which account was changed instead of a patient.
+// For staff account changes: stores the changed account's username instead of a patient ID.
 async function logAccountAction(user, action, targetUsername) {
   await AuditLog.create({ username: user.username, action, targetUsername });
 }
 
+// Patient names are joined in for display only, they are never stored in the log.
 async function listRecent(patientId, limit = 200) {
   const filter = /^P-\d{4}$/.test(patientId || '') ? { patientId } : {};
   return AuditLog.aggregate([

@@ -1,4 +1,4 @@
-// GET /api/documents: admin only. Lists the clinic documents the AI assistant answers from, section by section.
+// Documents route (admin only): the clinic documents the AI assistant answers from.
 const express = require('express');
 const { requireRole } = require('../middleware/auth');
 const { listDocuments } = require('../services/documentService');

@@ -1,5 +1,5 @@
-// Shared helper for migrations: create a collection with a validation rule, or update the rule if it already exists.
-// "moderate" validation checks new and updated documents, but leaves existing invalid ones alone.
+// Migration helper: creates a collection with a validation rule, or updates the rule if it already exists.
+// 'moderate' validation checks new and updated documents but leaves old invalid ones alone.
 async function ensureCollection(db, name, schema) {
   const exists = (await db.listCollections({ name }).toArray()).length > 0;
   const options = { validator: { $jsonSchema: schema }, validationLevel: 'moderate' };

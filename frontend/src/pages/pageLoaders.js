@@ -1,6 +1,5 @@
-// How each page's code is loaded. Pages are split into separate files by Vite, so the browser downloads
-// a page only when it's needed. App.jsx turns these into lazy routes; AppLayout preloads them when the browser is idle,
-// so clicking a menu item afterwards is instant.
+// One dynamic import per page, so Vite puts each page in its own file.
+// App.jsx lazy-loads them and AppLayout preloads them once the browser is idle.
 export const pageLoaders = {
   patients: () => import('./PatientsPage'),
   appointments: () => import('./AppointmentsPage'),

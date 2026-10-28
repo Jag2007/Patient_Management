@@ -1,6 +1,5 @@
-// Runs the database migrations in setup/migrations/ in file-name order, each one only once.
-// Applied migrations are recorded in the "migrations" collection, so running it again is safe.
-// Usage (from backend/): npm run migrate        Status only: npm run migrate -- --status
+// Runs each migration in setup/migrations/ once, in file-name order, and records it in the "migrations" collection.
+// Usage: npm run migrate   (status only: npm run migrate -- --status)
 require('dotenv').config({ quiet: true });
 const fs = require('fs');
 const path = require('path');

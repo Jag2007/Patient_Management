@@ -1,10 +1,10 @@
-/* Small global styles and animations. Everything else is styled through the Ant Design theme in theme.js. */
+/* Global styles and animations. Most styling comes from the Ant Design theme in theme.js. */
 body {
   margin: 0;
   background: #f6f4ee;
 }
 
-/* Main content area next to the sidebar. On small screens the sidebar collapses into a button at the top left. */
+/* Main content area. On small screens the extra top padding leaves room for the sidebar toggle button. */
 .app-content {
   padding: 28px 32px 40px;
   max-width: 1240px;
@@ -17,7 +17,7 @@ body {
   .app-content { padding: 72px 16px 32px; }
 }
 
-/* Pages fade in and rise slightly when you switch between them. */
+/* Page switch animation. */
 .page-enter {
   animation: fadeUp 0.35s ease-out both;
 }
@@ -27,7 +27,7 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Summary cards lift gently on hover. */
+/* StatCard hover. */
 .stat-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -36,12 +36,12 @@ body {
   box-shadow: 0 10px 24px rgba(20, 53, 45, 0.08);
 }
 
-/* Chat bubbles slide in. */
+/* Chat bubbles. */
 .bubble-in {
   animation: fadeUp 0.25s ease-out both;
 }
 
-/* "Typing" dots while the assistant is thinking. */
+/* Typing dots while the assistant answers. */
 .typing span {
   display: inline-block;
   width: 7px;
@@ -59,7 +59,7 @@ body {
   40% { opacity: 1; transform: translateY(-3px); }
 }
 
-/* Heartbeat line on the login page: the line draws itself, then repeats. */
+/* Heartbeat line on the login page. */
 .ecg-line {
   stroke-dasharray: 900;
   stroke-dashoffset: 900;
@@ -72,13 +72,13 @@ body {
   100% { stroke-dashoffset: -900; }
 }
 
-/* Respect users who prefer less motion. */
+/* Turn animations off for users who ask for reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .page-enter, .bubble-in, .typing span, .ecg-line, .stat-card { animation: none; transition: none; }
   .ecg-line { stroke-dashoffset: 0; }
 }
 
-/* AI assistant: chat history on the left, the chat on the right (stacked on small screens). */
+/* AI Assistant: chat history on the left, chat on the right, stacked on small screens. */
 .chat-layout {
   display: grid;
   grid-template-columns: 240px 1fr;

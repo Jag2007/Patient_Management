@@ -1,4 +1,4 @@
-// Title, short description and action buttons shown at the top of every page.
+// Title, subtitle and action buttons at the top of each page.
 import { Typography } from 'antd';
 
 export default function PageHeader({ title, subtitle, actions }) {

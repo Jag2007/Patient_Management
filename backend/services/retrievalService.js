@@ -1,11 +1,10 @@
-// Finds the FAQ paragraphs that best match a question, using MongoDB's text index (keyword search).
-// Common question words (can, what, how...) are dropped first so they don't match unrelated paragraphs.
-// Returns at most 3 sections above a minimum score, each with a short ID (S1, S2, S3) the AI must cite.
-// If nothing matches well enough, it returns an empty list and the AI is not called for FAQ questions.
+// Finds the FAQ paragraphs that best match a question using MongoDB's text index.
+// Returns up to 3 sections above a minimum score, labelled S1, S2, S3 for the AI to cite.
 const FaqSection = require('../models/FaqSection');
 
 const MAX_SECTIONS = 3;
 const MIN_SCORE = 0.5;
+// Common question words are dropped so they don't match unrelated paragraphs.
 const QUESTION_WORDS = new Set(['can', 'could', 'do', 'does', 'i', 'we', 'you', 'what', 'how', 'when', 'where', 'which', 'is', 'are', 'my', 'your', 'the', 'a', 'an']);
 
 function keywordsOf(question) {

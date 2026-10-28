@@ -1,20 +1,11 @@
-// Business logic for patients: create (with auto ID like P-0001), list/search, view and edit.
-// Only whitelisted fields are copied from the request, so nobody can overwrite patientId or _id.
-// Every single-patient action writes an audit entry.
+// Patient logic: create (auto ID like P-0001), list/search, view and edit. Each single-patient action is audited.
 const Patient = require('../models/Patient');
 const httpError = require('../utils/httpError');
 const escapeRegex = require('../utils/escapeRegex');
+const pickFields = require('../utils/pickFields');
 const { logAction } = require('./auditService');
 
 const EDITABLE_FIELDS = ['name', 'dateOfBirth', 'phone', 'email', 'address'];
-
-function pickEditableFields(body = {}) {
-  const data = {};
-  for (const field of EDITABLE_FIELDS) {
-    if (body[field] !== undefined) data[field] = body[field];
-  }
-  return data;
-}
 
 async function nextPatientId() {
   const last = await Patient.findOne().sort({ patientId: -1 });
@@ -27,7 +18,7 @@ async function listPatients(search) {
   const filter = term
     ? { $or: [{ patientId: term.toUpperCase() }, { name: new RegExp(escapeRegex(term), 'i') }] }
     : {};
-  return Patient.find(filter).sort({ patientId: 1 }).limit(500).lean(); // lean: plain objects, no Mongoose overhead
+  return Patient.find(filter).sort({ patientId: 1 }).limit(500).lean(); // lean(): plain objects, faster for a read-only list
 }
 
 async function getPatient(patientId, user) {
@@ -38,13 +29,13 @@ async function getPatient(patientId, user) {
 }
 
 async function createPatient(body, user) {
-  const patient = await Patient.create({ ...pickEditableFields(body), patientId: await nextPatientId() });
+  const patient = await Patient.create({ ...pickFields(body, EDITABLE_FIELDS), patientId: await nextPatientId() });
   await logAction(user, 'patient.create', patient.patientId);
   return patient;
 }
 
 async function updatePatient(patientId, body, user) {
-  const patient = await Patient.findOneAndUpdate({ patientId }, pickEditableFields(body), {
+  const patient = await Patient.findOneAndUpdate({ patientId }, pickFields(body, EDITABLE_FIELDS), {
     returnDocument: 'after',
     runValidators: true,
   });

@@ -1,6 +1,4 @@
-// One row per sensitive action: who did what to which patient (or which staff account), and when.
-// Only the patient ID or the account's username is stored, never names or contact details.
-// Written by auditService, read only by admins through /api/audit-logs.
+// Audit log model: who did what to which patient or staff account. No names or contact details are stored.
 const mongoose = require('mongoose');
 
 const auditLogSchema = new mongoose.Schema(
@@ -13,7 +11,7 @@ const auditLogSchema = new mongoose.Schema(
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
-// The log is always read newest first, either all of it or one patient's history.
+// Read newest first, either all entries or one patient's history.
 auditLogSchema.index({ createdAt: -1 });
 auditLogSchema.index({ patientId: 1, createdAt: -1 });
 

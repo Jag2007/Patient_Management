@@ -1,7 +1,5 @@
-// Page frame shown after login: a hospital-style left sidebar (brand, menu, signed-in user, logout)
-// and the page content, which fades in on every page change. On small screens the sidebar collapses.
-// The Documents, Audit Log and Staff menu items are shown only to admins; this is for convenience, not security.
-// Pages load on demand: a small spinner shows while a page's code arrives, and the rest are preloaded when idle.
+// Page frame after login: sidebar (menu, signed-in user, logout) and the current page through <Outlet>.
+// Admin-only menu items are hidden for staff, and the other pages are preloaded when the browser is idle.
 import { Suspense, useEffect } from 'react';
 import { Avatar, Button, Layout, Menu, Popconfirm, Spin, Typography } from 'antd';
 import { AuditOutlined, CalendarOutlined, FileTextOutlined, IdcardOutlined, LogoutOutlined, MessageOutlined, TeamOutlined } from '@ant-design/icons';
@@ -71,6 +69,7 @@ export default function AppLayout() {
               <div style={{ lineHeight: 1.25 }}>
                 <Typography.Text style={{ color: '#fff', display: 'block' }}>{user.username}</Typography.Text>
                 <Typography.Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, textTransform: 'capitalize' }}>
+                  {/* The admin account is called "admin", so don't show the word twice. */}
                   {user.role === user.username ? 'Signed in' : user.role}
                 </Typography.Text>
               </div>

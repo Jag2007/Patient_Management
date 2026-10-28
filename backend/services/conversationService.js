@@ -1,13 +1,13 @@
-// Chat history: saves each question and checked answer in the user's Conversation, and lists/opens/deletes chats.
-// Earlier turns are read from OUR database, never from the browser, so a client cannot fake what the AI "said before".
-// Every query includes the logged-in user's ID, so nobody can open or delete another user's chat.
+// Chat history: saves each question and answer to the user's Conversation, and lists, opens and deletes chats.
+// Earlier turns are read from our database, never the browser, so a client can't fake what the AI said before.
 const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
 const httpError = require('../utils/httpError');
 const chatService = require('./chatService');
 
-const HISTORY_MESSAGES = 6; // the last 3 questions and their answers are sent to the AI
+const HISTORY_MESSAGES = 6; // last 3 questions and their answers
 
+// Every chat query includes the user's ID, so nobody can open or delete someone else's chat.
 function ownChat(id, user) {
   if (!mongoose.isValidObjectId(id)) throw httpError(400, 'Invalid conversation ID');
   return { _id: id, user: user.id };

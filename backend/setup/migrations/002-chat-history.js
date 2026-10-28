@@ -1,4 +1,4 @@
-// Adds the conversations collection for stored AI chat history (one document per chat, owned by one user).
+// Adds the conversations collection for AI chat history.
 const { ensureCollection } = require('./helpers');
 
 module.exports = {

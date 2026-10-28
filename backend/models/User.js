@@ -1,7 +1,5 @@
-// A clinic employee who can log in (admin or staff). Patients are NOT users.
-// Passwords are stored only as bcrypt hashes, never in plain text.
-// Staff accounts are created, disabled and reset only by an admin (userService). A disabled account
-// (active: false) can't log in, and its existing token stops working on the next request (middleware/auth.js).
+// Clinic login account (admin or staff); patients are not users. Only a bcrypt hash of the password is stored.
+// active: false blocks login and any token already issued (see middleware/auth.js).
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema(

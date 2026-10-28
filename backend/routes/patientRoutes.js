@@ -1,5 +1,4 @@
-// Patient endpoints. Thin on purpose: read the request, call patientService, send JSON.
-// All routes need a logged-in admin or staff user (checked in app.js and here).
+// Patient routes: reads the request and calls patientService.
 const express = require('express');
 const { requireRole } = require('../middleware/auth');
 const patientService = require('../services/patientService');

@@ -1,5 +1,4 @@
-// Speed: the audit log is always read newest first (all entries, or one patient's history),
-// so these indexes let MongoDB return the latest entries without sorting the whole collection.
+// Audit log indexes, since the log is always read newest first (all entries or one patient's).
 module.exports = {
   description: 'audit_logs indexes on createdAt and patientId + createdAt',
 

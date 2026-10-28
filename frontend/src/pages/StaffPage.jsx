@@ -1,18 +1,18 @@
-// Admin-only page for managing staff logins: add a staff account, reset its password, disable/enable it, or delete it.
-// Admin accounts are listed but can't be changed here. Staff never see this menu item, and the backend
-// returns 403 if they call /api/users directly. A disabled account is logged out on its next request.
-import { useCallback, useEffect, useState } from 'react';
+// Staff page (admin only): add, reset password, disable/enable and delete staff logins via /api/users.
+// Admin accounts are listed but can't be changed here.
+import { useState } from 'react';
 import { App, Button, Card, Form, Input, Modal, Popconfirm, Space, Table, Typography } from 'antd';
 import { CheckCircleOutlined, KeyOutlined, StopOutlined, TeamOutlined, UserAddOutlined, UserOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api, { errorMessage } from '../api/client';
+import useApi from '../api/useApi';
 import PageHeader from '../components/PageHeader';
 import { SoftTag } from '../components/SoftTag';
 import StatCard from '../components/StatCard';
 import StatRow from '../components/StatRow';
 import { colors } from '../theme';
 
-// Same rules as the backend (userService.js), so mistakes show up before submitting.
+// Same rules as the backend (userService.js), so mistakes show before submitting.
 const PASSWORD_RULES = [
   { required: true, message: 'Enter a password' },
   { min: 8, max: 64, message: 'Password must be 8 to 64 characters' },
@@ -39,8 +39,6 @@ function PasswordFields() {
 }
 
 export default function StaffPage() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [resetting, setResetting] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -48,28 +46,15 @@ export default function StaffPage() {
   const [resetForm] = Form.useForm();
   const { message } = App.useApp();
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await api.get('/users');
-      setUsers(data);
-    } catch (err) {
-      message.error(errorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [message]);
+  const { data: users, loading, reload } = useApi('/users');
 
-  useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
-
+  // Runs one staff action, shows the result and reloads the list. Returns true on success so the modal can close.
   async function run(action, successText) {
     setSaving(true);
     try {
       await action();
       message.success(successText);
-      loadUsers();
+      reload();
       return true;
     } catch (err) {
       message.error(errorMessage(err));

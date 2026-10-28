@@ -1,8 +1,5 @@
-// The tools the AI can request. Each tool is one object in TOOLS: who may use it, what it does,
-// how its source is labelled, and what to say when it finds nothing. Adding a tool = adding one entry.
-// The model only ASKS for a tool. runTool() checks the user's role, validates the arguments
-// (exactly one: patientId like P-0001, or a patient name), finds the patient, writes an audit entry,
-// and runs one fixed read-only query that returns only whitelisted fields. No other database access.
+// The patient tools the AI can ask for. The model only asks: runTool checks the role and arguments,
+// finds the patient, writes an audit entry and runs one fixed read-only query.
 const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
 const escapeRegex = require('../utils/escapeRegex');
@@ -102,7 +99,7 @@ async function findPatients({ patientId, name }) {
   return Patient.find({ name: new RegExp(escapeRegex(name), 'i') }).sort({ patientId: 1 }).limit(5);
 }
 
-// Returns either { reply } — a fixed answer for the user, no AI needed — or { data, sourceLabel } for the AI.
+// Returns { reply } (a fixed answer for the user, no AI needed) or { data, sourceLabel } for the AI.
 async function runTool(toolName, rawArguments, user) {
   const tool = TOOLS[toolName];
   if (!tool) return { reply: 'Unknown tool' };

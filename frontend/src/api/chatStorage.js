@@ -1,6 +1,5 @@
-// Remembers the open AI chat (its ID, messages and the unsent question) while you move between pages.
-// Uses sessionStorage, so it lasts only for this browser tab and is wiped on logout (see session.js).
-// The full chat history itself is stored on the server; this only avoids reloading it on every page switch.
+// Keeps the open AI chat (id, messages, unsent draft) in sessionStorage so it survives page switches.
+// The server keeps the full history; this just avoids reloading it. Cleared on logout by session.js.
 const KEY = 'chat';
 const EMPTY = { conversationId: null, messages: [], draft: '' };
 
@@ -16,7 +15,7 @@ export function saveChat(chat) {
   try {
     sessionStorage.setItem(KEY, JSON.stringify(chat));
   } catch {
-    // Storage can be full or blocked; the chat still works, it just won't be kept.
+    // Storage can be full or blocked. The chat still works, it just isn't kept.
   }
 }
 
@@ -24,6 +23,6 @@ export function clearChat() {
   try {
     sessionStorage.removeItem(KEY);
   } catch {
-    // Nothing to clear.
+    // Storage blocked, so there's nothing to clear.
   }
 }

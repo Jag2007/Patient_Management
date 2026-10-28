@@ -1,9 +1,7 @@
-// The AI assistant's logic, with guardrails in a fixed order:
-// 1) check the question  2) refuse diagnosis/treatment and obvious injection  3) find FAQ sections
-// 4) ask the AI, with the earlier turns of this chat (it may request patient tools, at most 2 rounds)
-// 5) check the AI's JSON and its cited sources  6) a second AI call (the judge) re-checks the answer against those sources.
-// The model never decides what is allowed: the backend decides what it sees and checks what it says.
+// AI assistant: checks the question, finds FAQ sections, asks the model (which can call patient tools),
+// then checks its JSON, its cited sources and the judge's verdict before anything is shown.
 const httpError = require('../utils/httpError');
+const { extractJson } = require('../utils/parseJson');
 const Patient = require('../models/Patient');
 const { findRelevantSections } = require('./retrievalService');
 const llm = require('./llmService');
@@ -56,8 +54,8 @@ function checkQuestion(question) {
   return question.trim().replace(/[<>]/g, '');
 }
 
-// History comes from our own database (see conversationService), not from the browser. It is still
-// treated as data: angle brackets are stripped so it cannot close our tags.
+// History comes from our database, not the browser, but it's still treated as data:
+// angle brackets are stripped so it can't close our tags.
 function historyTranscript(history) {
   return history.map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.text.replace(/[<>]/g, '')}`).join('\n');
 }
@@ -84,22 +82,16 @@ function buildUserMessage(question, sections, transcript) {
 }
 
 function parseModelJson(content) {
-  const match = (content || '').match(/\{[\s\S]*\}/);
-  if (!match) return null;
-  try {
-    const parsed = JSON.parse(match[0]);
-    if (typeof parsed.can_answer !== 'boolean' || typeof parsed.answer !== 'string') return null;
-    return parsed;
-  } catch {
-    return null;
-  }
+  const parsed = extractJson(content);
+  if (!parsed || typeof parsed.can_answer !== 'boolean' || typeof parsed.answer !== 'string') return null;
+  return parsed;
 }
 
 function reply(answer, sources = []) {
   return { answer, sources };
 }
 
-// Checks the model's JSON and cited sources, then asks the judge. Only an answer that passes both is shown.
+// Only shown if the JSON is valid, the cited sources are real, and the judge passes it.
 async function buildVerifiedAnswer(question, content, availableSources) {
   const parsed = parseModelJson(content);
   if (!parsed || !parsed.can_answer || !parsed.answer.trim()) return reply(FALLBACK);
@@ -115,7 +107,7 @@ async function buildVerifiedAnswer(question, content, availableSources) {
   return { ...reply(answer, sources.map(({ id, label }) => ({ id, label }))), verified: true };
 }
 
-// history: earlier turns of this chat, [{ role: 'user' | 'assistant', text }], read from the database.
+// history: earlier turns of this chat from the database, as [{ role, text }].
 async function answerQuestion(rawQuestion, user, history = []) {
   const question = checkQuestion(rawQuestion);
   const refusal = safetyRefusal(question);
@@ -126,7 +118,7 @@ async function answerQuestion(rawQuestion, user, history = []) {
   const aboutPatient = await mentionsPatient(question);
   if (sections.length === 0 && !aboutPatient && !transcript) return reply(FALLBACK);
 
-  // Each source keeps its text so the judge can re-check the answer against exactly what the AI saw.
+  // Keep each source's text so the judge checks the answer against exactly what the model saw.
   const availableSources = sections.map((s) => ({ id: s.id, label: `${s.source} (section ${s.section})`, text: s.text }));
   if (transcript) availableSources.push({ id: HISTORY_SOURCE_ID, label: 'Earlier in this chat', text: transcript });
   const messages = [
@@ -138,6 +130,7 @@ async function answerQuestion(rawQuestion, user, history = []) {
   let response = await llm.chat(messages, tools);
   let toolCount = 0;
 
+  // The model can ask for tools at most MAX_TOOL_ROUNDS times, so it can't loop forever.
   for (let round = 1; response.tool_calls?.length; round++) {
     if (round > MAX_TOOL_ROUNDS) return reply(FALLBACK);
     const toolCalls = response.tool_calls.slice(0, MAX_TOOL_CALLS);

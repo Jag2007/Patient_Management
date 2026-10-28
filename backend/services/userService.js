@@ -1,7 +1,5 @@
-// Staff account management, used only by admins (the route checks requireRole('admin')).
-// Admins can list accounts, create staff logins, reset a staff password, disable/enable and delete staff.
-// Admin accounts can't be changed here, so an admin can't lock themselves (or another admin) out by mistake.
-// Passwords are checked for strength and stored only as bcrypt hashes; every change is written to the audit log.
+// Staff account management for admins: list, create, reset password, enable/disable and delete. Every change is audited.
+// Admin accounts can't be changed here, so an admin can't lock themselves out.
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
@@ -51,7 +49,7 @@ async function resetPassword(id, password, admin) {
   const user = await findStaff(id);
   user.passwordHash = await bcrypt.hash(checkPassword(password), 10);
   await user.save();
-  forgetAccount(user._id);
+  forgetAccount(user._id); // clear the login cache so the change applies at once
   await logAccountAction(admin, 'staff.reset_password', user.username);
 }
 

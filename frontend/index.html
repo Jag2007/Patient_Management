@@ -9,14 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-    <!--
-      Opening gate: the first thing you see when you open the site. It lives here in index.html (not in React)
-      so it paints instantly, before any JavaScript downloads, and the app loads behind it.
-      Sequence: the logo slowly rises in, a heartbeat line draws under it, the name fades up,
-      then the logo fades away and the two doors slide apart to reveal the app. The doors only open once the app has rendered
-      (main.jsx fires "app:ready"), so the gate hides loading time instead of adding to it.
-      Shown once per browser tab session; click, Enter or Escape skips it; reduced-motion users get a short fade.
-    -->
+    <!-- Opening gate: plain HTML/CSS so it paints before any JS loads, while the app loads behind it.
+         The doors open once main.jsx fires "app:ready"; shown once per tab, and a click, Enter or Escape skips it. -->
     <style>
       #gate { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; overflow: hidden; font-family: Manrope, -apple-system, 'Segoe UI', Roboto, sans-serif; cursor: pointer; }
       #gate .door { position: absolute; top: 0; bottom: 0; width: 50.5%; background: #14352d; transition: transform 1.3s cubic-bezier(0.77, 0, 0.18, 1) 0.45s; }
@@ -82,7 +76,7 @@
 
         setTimeout(function () { minTimeUp = true; maybeOpen(); }, reducedMotion ? 400 : 3000);
         window.addEventListener('app:ready', function () { appReady = true; maybeOpen(); });
-        setTimeout(open, 8000); // never keep the gate up if the app is slow to load
+        setTimeout(open, 8000); // don't keep the gate up forever if the app is slow
         gate.addEventListener('click', open);
         document.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === 'Escape') open(); });
       })();

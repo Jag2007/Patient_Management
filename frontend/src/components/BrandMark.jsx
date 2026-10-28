@@ -1,4 +1,4 @@
-// The app's logo: a rounded square with a medical cross, used in the sidebar and on the login page.
+// App logo (a cross in a rounded square), used in the sidebar and on the login page.
 import { colors } from '../theme';
 
 export default function BrandMark({ size = 40, light = false }) {

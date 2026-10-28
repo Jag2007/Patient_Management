@@ -1,7 +1,5 @@
-// Creates backend/.env from .env.example so a new developer doesn't have to edit it by hand.
-// It generates JWT_SECRET, asks for the two values only you can provide (MongoDB URI and Groq key),
-// and derives the test database URI from the main one (same cluster, database name + "_test").
-// Safe to run again: values that are already filled in are kept. Run with: make env  (or npm run init-env)
+// Creates backend/.env from .env.example: generates JWT_SECRET, asks for the MongoDB URI and Groq key, adds the test DB URI.
+// Values already set are kept, so it's safe to re-run. Run with: make env (or npm run init-env)
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');

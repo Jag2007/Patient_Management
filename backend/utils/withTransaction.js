@@ -1,10 +1,8 @@
-// Runs several database writes as one MongoDB transaction: either all of them are saved, or none are.
-// Used when an appointment change and its audit entry must succeed or fail together.
-// Transactions need a replica set (MongoDB Atlas always is one). A plain local `mongod` is not,
-// so there the writes run without a transaction (each single-document update is still atomic).
+// Runs work(session) in a MongoDB transaction, so all its writes are saved or none are.
+// A plain local mongod (no replica set) can't do transactions, so there it runs without one.
 const mongoose = require('mongoose');
 
-const NOT_A_REPLICA_SET = 20; // MongoDB error code "IllegalOperation": transactions are not supported here
+const NOT_A_REPLICA_SET = 20; // MongoDB's IllegalOperation code: no transaction support here
 
 async function withTransaction(work) {
   const session = await mongoose.startSession();

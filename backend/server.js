@@ -1,6 +1,4 @@
-// Entry point: loads .env, checks required settings, connects to MongoDB, then starts the HTTP server.
-// If a required setting is missing it stops immediately with a clear message, instead of failing later.
-// Run with "npm run dev" (auto-restart) or "npm start".
+// Entry point: checks the required .env settings, connects to MongoDB and starts the server.
 require('dotenv').config({ quiet: true });
 const connectDB = require('./config/db');
 const app = require('./app');

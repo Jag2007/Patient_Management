@@ -1,7 +1,5 @@
-// Builds the Express app: security middleware, gzip compression, Swagger docs at /api/docs, routes,
-// and the error handler (always last).
-// It does not start listening, so tests can import it with Supertest without opening a port.
-// server.js connects the database and starts the app.
+// Express app: security middleware, Swagger docs, routes and the error handler.
+// It doesn't listen on a port, so tests can load it directly. server.js starts it.
 const express = require('express');
 const compression = require('compression');
 const cors = require('cors');
@@ -15,11 +13,11 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-// On Render (and most hosts) requests arrive through a proxy; trust it so rate limits see each user's real IP.
+// Requests come through the host's proxy (e.g. Render). Trusting it lets the rate limiters see each user's real IP.
 app.set('trust proxy', 1);
 
 app.use(helmet());
-app.use(compression()); // gzip responses: e.g. the appointments list shrinks from ~63 KB to ~6 KB
+app.use(compression()); // gzip: the appointments list goes from ~63 KB to ~6 KB
 app.use(cors({ origin: (process.env.CLIENT_ORIGIN || 'http://localhost:5173').split(',') }));
 app.use(express.json({ limit: '10kb' }));
 

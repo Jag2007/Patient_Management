@@ -1,5 +1,4 @@
-// App colours and Ant Design theme: a calm "clinical pine and ivory" palette for a hospital staff portal.
-// Every page gets these through ConfigProvider in main.jsx, so colours are defined in one place.
+// Colours and the Ant Design theme, applied to every page through ConfigProvider in main.jsx.
 export const colors = {
   primary: '#1F5E4F',
   primaryDark: '#14352D',
@@ -18,7 +17,7 @@ export const colors = {
   ai: '#6B5B95',
 };
 
-// Status tags use a light background with a clear, darker text colour, so they stay easy to read.
+// Appointment status colours, used by StatusTag in SoftTag.jsx.
 export const statusColors = {
   scheduled: { background: '#EAF3FD', border: '#B9D6F5', text: '#1C5FA8' },
   completed: { background: '#E8F7EE', border: '#B4E1C5', text: '#1D7A46' },

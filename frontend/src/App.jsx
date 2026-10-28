@@ -1,7 +1,5 @@
-// App routes. /login is public; every other page sits inside AppLayout and needs a session.
-// The Documents, Audit Log and Staff routes are only rendered for admins (the backend also returns 403 for staff).
-// Each page is loaded on demand (React.lazy), so opening the site downloads only the page you land on;
-// the other pages are fetched in the background once the browser is idle (see pages/pageLoaders.js).
+// Routes: /login is public; every other page renders inside AppLayout and needs a session.
+// Pages are lazy-loaded through pageLoaders.js, and admin-only routes are left out for staff.
 import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { getSession } from './api/session';

@@ -1,6 +1,5 @@
-// POST /api/auth/login: the only public endpoint. Returns a JWT and the user's role.
-// Failed logins are rate limited (10 per 15 minutes per IP) to slow down password guessing;
-// successful logins don't count. The frontend sends the token as "Authorization: Bearer <token>".
+// Login route, the only public endpoint. Returns a JWT and the user's role.
+// Failed logins are limited to 10 per 15 minutes per IP to slow down password guessing.
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const authService = require('../services/authService');

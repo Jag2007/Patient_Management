@@ -1,37 +1,23 @@
-// Admin-only page listing the clinic documents the AI assistant answers from, exactly as stored in the database.
-// Each card is one document; clicking it opens every section. Section numbers match the AI's source tags,
-// e.g. an answer citing "billing.md (section 2)" comes from section 2 of Billing and Payments.
-import { useEffect, useState } from 'react';
+// Documents page (admin only): the clinic documents the AI assistant answers from, via /api/documents.
+// Section numbers match the sources shown under chat answers, e.g. "billing.md (section 2)".
+import { useState } from 'react';
 import { Alert, Card, Drawer, Empty, Tag, Typography } from 'antd';
 import { FileTextOutlined, ReadOutlined } from '@ant-design/icons';
-import api, { errorMessage } from '../api/client';
+import useApi from '../api/useApi';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import StatRow from '../components/StatRow';
 import { colors } from '../theme';
 
 export default function DocumentsPage() {
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { data: documents, loading, error } = useApi('/documents', { toast: false });
   const [open, setOpen] = useState(null);
-
-  useEffect(() => {
-    api
-      .get('/documents')
-      .then(({ data }) => setDocuments(data))
-      .catch((err) => setError(errorMessage(err)))
-      .finally(() => setLoading(false));
-  }, []);
 
   const sectionCount = documents.reduce((total, doc) => total + doc.sections.length, 0);
 
   return (
     <>
-      <PageHeader
-        title="Documents"
-        subtitle="The clinic documents the AI assistant answers from. Section numbers match the sources shown under chat answers."
-      />
+      <PageHeader title="Documents" subtitle="The clinic documents the AI assistant answers from. Section numbers match the sources shown under chat answers." />
 
       <StatRow>
         <StatCard icon={<FileTextOutlined />} label="Documents" value={documents.length} color={colors.primary} />

@@ -1,5 +1,4 @@
-// The bar above a table with "Sort by" and filter controls, like an online shop's product list.
-// Shows how many rows match and a "Clear filters" button when any filter is active.
+// Card above a table that holds the filter and sort controls, a "Showing x of y" count and a Clear button.
 import { Button, Card, Typography } from 'antd';
 import { ClearOutlined } from '@ant-design/icons';
 

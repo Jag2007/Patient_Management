@@ -1,5 +1,4 @@
-// Light, easy-to-read tags. SoftTag tints any colour (light background, coloured text and border);
-// StatusTag shows an appointment status with the colours in theme.js (blue scheduled, green completed, red cancelled).
+// SoftTag is a light tinted tag in any colour; StatusTag shows an appointment status using statusColors from theme.js.
 import { Tag } from 'antd';
 import { statusColors } from '../theme';
 

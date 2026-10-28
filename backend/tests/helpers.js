@@ -1,6 +1,4 @@
-// Shared test setup: connects to the separate TEST database (MONGO_URI_TEST), never the real one.
-// Creates fresh admin and staff users and logs them in through the real /api/auth/login route.
-// Every test file calls setupTestDb() in beforeAll and closeTestDb() in afterAll.
+// Test setup: connects to the separate test database (MONGO_URI_TEST), wipes it and creates admin and staff users.
 require('dotenv').config({ quiet: true });
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');

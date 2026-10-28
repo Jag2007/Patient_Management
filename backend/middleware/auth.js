@@ -1,13 +1,11 @@
-// requireLogin: checks the JWT in the Authorization header, then checks the account still exists and is active,
-// and puts the user on req.user (role read from the database, so a disabled or deleted account is locked out at once).
-// The account check is remembered for 30 seconds, so most requests skip that database round trip;
-// userService calls forgetAccount() whenever an admin changes an account, so changes still apply immediately.
-// requireRole: allows the request only if req.user.role is in the allowed list.
+// requireLogin checks the JWT and that the account is still active; requireRole checks the user's role.
 // Every protected route uses both, so permissions are enforced by the backend, not the UI.
 const jwt = require('jsonwebtoken');
 const httpError = require('../utils/httpError');
 const User = require('../models/User');
 
+// The account check is cached for 30 s so most requests skip a DB query.
+// userService calls forgetAccount() after any account change, so changes still apply right away.
 const ACCOUNT_CACHE_MS = 30 * 1000;
 const accountCache = new Map(); // user id -> { user, expiresAt }
 

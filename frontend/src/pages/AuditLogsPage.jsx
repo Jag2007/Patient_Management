@@ -1,29 +1,18 @@
-// Admin-only page listing audit entries: who did what to which patient, and when.
-// Actions are shown as readable labels with filters (by user and activity) and sorting by time; each row shows the patient's name and ID,
-// and clicking a patient opens their details and full activity.
-// Staff never see this menu item, and the backend returns 403 if they call the API directly.
-import { useEffect, useState } from 'react';
+// Audit Log page (admin only): who viewed or changed which patient or staff account, and when, from /api/audit-logs.
+// Clicking a patient opens PatientActivityDrawer with their full history.
+import { useState } from 'react';
 import { Alert, Button, Card, Table, Typography } from 'antd';
 import dayjs from 'dayjs';
-import api, { errorMessage } from '../api/client';
+import useApi from '../api/useApi';
 import PageHeader from '../components/PageHeader';
 import PatientActivityDrawer from '../components/PatientActivityDrawer';
 import { ACTIVITY, activityInfo } from '../components/activity';
 import { SoftTag } from '../components/SoftTag';
+import { DateCell } from '../components/cells';
 
 export default function AuditLogsPage() {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { data: logs, loading, error } = useApi('/audit-logs', { toast: false });
   const [activityFor, setActivityFor] = useState(null);
-
-  useEffect(() => {
-    api
-      .get('/audit-logs')
-      .then(({ data }) => setLogs(data))
-      .catch((err) => setError(errorMessage(err)))
-      .finally(() => setLoading(false));
-  }, []);
 
   const users = [...new Set(logs.map((log) => log.username))];
 
@@ -33,14 +22,9 @@ export default function AuditLogsPage() {
       dataIndex: 'createdAt',
       sorter: (a, b) => dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf(),
       defaultSortOrder: 'descend',
+      // Only flip between newest and oldest, never back to unsorted.
       sortDirections: ['descend', 'ascend', 'descend'],
-      render: (value) => (
-        <>
-          <Typography.Text>{dayjs(value).format('DD MMM YYYY')}</Typography.Text>
-          <br />
-          <Typography.Text type="secondary">{dayjs(value).format('HH:mm:ss')}</Typography.Text>
-        </>
-      ),
+      render: (value) => <DateCell value={value} timeFormat="HH:mm:ss" />,
     },
     {
       title: 'User',

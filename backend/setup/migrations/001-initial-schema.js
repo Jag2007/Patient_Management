@@ -1,6 +1,5 @@
-// Creates the core collections with database-level validation rules and all their indexes.
-// The Mongoose models (backend/models) hold the full rules and friendly error messages; these rules are
-// a second safety net so even a write that bypasses the app cannot store a broken record.
+// Creates the core collections with database-level validation and indexes.
+// The Mongoose models have the full rules; this is a safety net for writes that skip the app.
 const { ensureCollection } = require('./helpers');
 
 const NUMBER = ['int', 'long', 'double'];

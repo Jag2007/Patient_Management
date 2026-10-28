@@ -1,5 +1,4 @@
-// A small summary card (icon, number, label) shown at the top of the Patients and Appointments pages.
-// The numbers are worked out in the browser from data the page already loaded; no extra API calls.
+// Summary card (icon, number, label) shown at the top of the list pages.
 import { Card, Typography } from 'antd';
 
 export default function StatCard({ icon, label, value, color }) {

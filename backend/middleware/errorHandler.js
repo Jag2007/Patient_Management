@@ -1,6 +1,5 @@
-// The single place where errors become HTTP responses. Registered last in app.js.
-// Turns Mongoose validation errors, bad IDs, duplicates and our own httpErrors into clean JSON.
-// Unexpected errors are logged on the server, and the user only sees a generic message.
+// Turns every error into a JSON response. Registered last in app.js.
+// Unexpected errors are logged and the user only gets a generic message.
 function errorHandler(err, req, res, next) {
   if (err.name === 'ValidationError') {
     const fields = {};

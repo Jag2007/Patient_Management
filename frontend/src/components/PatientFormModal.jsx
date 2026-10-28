@@ -1,5 +1,5 @@
-// Modal form used for both "New patient" and "Edit patient".
-// Field errors returned by the backend (e.g. "Phone must be 10 to 13 digits") are shown under each input.
+// Modal for creating or editing a patient through /api/patients.
+// Backend field errors show under the matching inputs.
 import { useEffect, useState } from 'react';
 import { App, DatePicker, Form, Input, Modal } from 'antd';
 import dayjs from 'dayjs';

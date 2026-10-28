@@ -1,12 +1,12 @@
-// Side drawer (admin only) for one patient: their details at the top, then their activity history as a timeline
-// (who viewed, edited, booked or cancelled, and when). Opened from the Patients page or by clicking a patient in the Audit Log.
-// Loads GET /patients/:id (which is itself audited as a view) and then GET /audit-logs?patientId=.
+// Admin drawer for one patient: their details and an activity timeline.
+// Loads /api/patients/:id (logged as a view) and /api/audit-logs?patientId=.
 import { useEffect, useState } from 'react';
 import { Alert, Avatar, Descriptions, Divider, Drawer, Empty, Spin, Timeline, Typography } from 'antd';
 import dayjs from 'dayjs';
 import api, { errorMessage } from '../api/client';
 import { activityInfo } from './activity';
 import { colors } from '../theme';
+import { age, initials } from '../pages/patientHelpers';
 
 export default function PatientActivityDrawer({ patientId, onClose }) {
   const [patient, setPatient] = useState(null);
@@ -58,19 +58,14 @@ export default function PatientActivityDrawer({ patientId, onClose }) {
         <div className="page-enter">
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
             <Avatar size={52} style={{ background: colors.primarySoft, color: colors.primary, fontWeight: 700, fontSize: 18 }}>
-              {patient.name
-                .split(' ')
-                .map((part) => part[0])
-                .slice(0, 2)
-                .join('')
-                .toUpperCase()}
+              {initials(patient.name)}
             </Avatar>
             <div>
               <Typography.Title level={4} style={{ margin: 0 }}>
                 {patient.name}
               </Typography.Title>
               <Typography.Text type="secondary">
-                {patient.patientId} · {dayjs().diff(patient.dateOfBirth, 'year')} years
+                {patient.patientId} · {age(patient)} years
               </Typography.Text>
             </div>
           </div>

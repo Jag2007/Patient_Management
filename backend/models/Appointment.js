@@ -1,6 +1,5 @@
-// An appointment that belongs to one patient (stored as a reference to the Patient).
-// The "date must be in the future and within one year" rule lives in appointmentService,
-// because past appointments are valid history and must still be storable (e.g. seed data).
+// Appointment model, linked to one patient. The future-date rule is in appointmentService,
+// since past appointments are still valid records (e.g. seed data).
 const mongoose = require('mongoose');
 
 const appointmentSchema = new mongoose.Schema(

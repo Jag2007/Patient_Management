@@ -1,8 +1,5 @@
-// Small evaluation set for the AI assistant: checks answer correctness and source grounding with the REAL model.
-// Each case in evalSet.json says what should happen: an answer (containing certain facts, citing a certain source),
-// the "not enough information" fallback, or a safety refusal. Answers also go through the LLM judge (judgeService),
-// so a passing answer was checked three ways: expected facts present, expected source cited, judge says grounded.
-// Run after "npm run seed" (it reads the seeded patients): npm run eval
+// Runs eval/evalSet.json against the real model: checks expected facts and source, the fallback, or a refusal.
+// Answers also go through the judge. Needs seeded data. Run with: npm run eval
 require('dotenv').config({ quiet: true });
 const mongoose = require('mongoose');
 const connectDB = require('../config/db');

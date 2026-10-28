@@ -1,5 +1,5 @@
-// Turns audit action codes (e.g. "appointment.cancel") into readable labels, colours and icons.
-// Used by the Audit Log page and the patient activity drawer so both look the same.
+// Labels, colours and icons for audit action codes like "appointment.cancel".
+// Shared by the Audit Log page and PatientActivityDrawer.
 import {
   CalendarOutlined,
   CheckCircleOutlined,

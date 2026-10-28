@@ -1,6 +1,4 @@
-// One AI assistant chat, owned by the user who started it. Stores the questions and the
-// backend-checked answers (with their source labels), so a chat can be reopened later
-// and the assistant can use earlier turns to understand follow-ups like "which patient was that?".
+// One AI chat owned by one user. Saved so it can be reopened and its earlier turns sent to the AI for follow-ups.
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema(

@@ -1,6 +1,4 @@
-// One paragraph of a clinic FAQ document (e.g. cancellation-policy.md, section 2).
-// The text index lets the AI assistant search these paragraphs by keywords.
-// Filled by the seed script; searched by retrievalService.
+// One paragraph of a clinic FAQ document. Filled by the seed script, searched by retrievalService through the text index.
 const mongoose = require('mongoose');
 
 const faqSectionSchema = new mongoose.Schema({

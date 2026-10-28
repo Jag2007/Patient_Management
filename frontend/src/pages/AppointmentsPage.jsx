@@ -1,59 +1,28 @@
-// Appointments list with status tags, a filter bar (search, status, clinician, date range) and "Sort by",
-// a "New appointment" form, and Edit / Cancel actions for scheduled appointments.
-// Cancel opens a confirmation showing exactly which appointment will be cancelled. The backend then cancels it
-// in one transaction (status change + audit entry together), and only if it is still scheduled, so double clicks are safe.
-import { useCallback, useEffect, useState } from 'react';
+// Appointments page: lists, filters, books, edits and cancels appointments via /api/appointments.
+// Filters and sort options live in appointmentHelpers.js; the backend makes each cancel a single transaction.
+import { useState } from 'react';
 import { App, Button, Card, DatePicker, Input, Segmented, Select, Space, Table, Typography } from 'antd';
 import { CalendarOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, EditOutlined, PlusOutlined, SafetyCertificateOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api, { errorMessage } from '../api/client';
+import useApi from '../api/useApi';
 import PageHeader from '../components/PageHeader';
 import AppointmentFormModal from '../components/AppointmentFormModal';
 import FilterBar from '../components/FilterBar';
+import { DateCell, PersonCell } from '../components/cells';
 import { StatusTag } from '../components/SoftTag';
 import StatCard from '../components/StatCard';
 import StatRow from '../components/StatRow';
 import { colors } from '../theme';
-
-const STATUSES = ['all', 'scheduled', 'completed', 'cancelled'];
-
-const time = (a) => dayjs(a.dateTime).valueOf();
-const byText = (field) => (a, b) => field(a).localeCompare(field(b));
-
-const SORTS = {
-  newest: { label: 'Date: newest first', compare: (a, b) => time(b) - time(a) },
-  oldest: { label: 'Date: oldest first', compare: (a, b) => time(a) - time(b) },
-  patientAz: { label: 'Patient name: A to Z', compare: byText((a) => a.patient?.name || '') },
-  patientZa: { label: 'Patient name: Z to A', compare: (a, b) => byText((x) => x.patient?.name || '')(b, a) },
-  clinician: { label: 'Clinician: A to Z', compare: byText((a) => a.clinician) },
-};
-
-const NO_FILTERS = { status: 'all', search: '', clinician: null, dates: null };
+import { NO_FILTERS, SORTS, STATUSES, filterAppointments } from './appointmentHelpers';
 
 export default function AppointmentsPage() {
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filters, setFilters] = useState(NO_FILTERS);
   const [sortBy, setSortBy] = useState('newest');
   const { message, modal } = App.useApp();
-
-  const loadAppointments = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await api.get('/appointments');
-      setAppointments(data);
-    } catch (err) {
-      message.error(errorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [message]);
-
-  useEffect(() => {
-    loadAppointments();
-  }, [loadAppointments]);
+  const { data: appointments, loading, reload } = useApi('/appointments');
 
   const setFilter = (name) => (value) => setFilters((prev) => ({ ...prev, [name]: value }));
 
@@ -92,16 +61,10 @@ export default function AppointmentsPage() {
     } catch (err) {
       message.error(errorMessage(err));
     }
-    loadAppointments();
+    reload();
   }
 
-  const term = filters.search.trim().toLowerCase();
-  const visible = appointments
-    .filter((a) => filters.status === 'all' || a.status === filters.status)
-    .filter((a) => !filters.clinician || a.clinician === filters.clinician)
-    .filter((a) => !filters.dates || (!dayjs(a.dateTime).isBefore(filters.dates[0], 'day') && !dayjs(a.dateTime).isAfter(filters.dates[1], 'day')))
-    .filter((a) => !term || [a.patient?.name, a.patient?.patientId, a.reason].some((value) => value?.toLowerCase().includes(term)))
-    .sort(SORTS[sortBy].compare);
+  const visible = filterAppointments(appointments, filters).sort(SORTS[sortBy].compare);
 
   const clinicians = [...new Set(appointments.map((a) => a.clinician))].sort();
   const filtersActive = JSON.stringify(filters) !== JSON.stringify(NO_FILTERS);
@@ -112,23 +75,11 @@ export default function AppointmentsPage() {
     {
       title: 'Date and time',
       dataIndex: 'dateTime',
-      render: (value) => (
-        <>
-          <Typography.Text strong>{dayjs(value).format('DD MMM YYYY')}</Typography.Text>
-          <br />
-          <Typography.Text type="secondary">{dayjs(value).format('ddd, HH:mm')}</Typography.Text>
-        </>
-      ),
+      render: (value) => <DateCell value={value} timeFormat="ddd, HH:mm" strong />,
     },
     {
       title: 'Patient',
-      render: (_, a) => (
-        <>
-          <Typography.Text>{a.patient?.name}</Typography.Text>
-          <br />
-          <Typography.Text type="secondary">{a.patient?.patientId}</Typography.Text>
-        </>
-      ),
+      render: (_, a) => <PersonCell name={a.patient?.name} id={a.patient?.patientId} />,
     },
     { title: 'Clinician', dataIndex: 'clinician' },
     { title: 'Reason', dataIndex: 'reason' },
@@ -201,7 +152,7 @@ export default function AppointmentsPage() {
         onClose={() => setFormOpen(false)}
         onSaved={() => {
           setFormOpen(false);
-          loadAppointments();
+          reload();
         }}
       />
     </>

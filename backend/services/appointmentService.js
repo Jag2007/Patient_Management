@@ -1,15 +1,12 @@
-// Business logic for appointments: list, create (with date rules), edit and safe cancel.
-// Edit and cancel use one atomic findOneAndUpdate that only matches "scheduled" appointments,
-// so a double click or changing a completed/cancelled appointment fails cleanly with 409.
-// The change and its audit entry are saved in one transaction: both are written, or neither is.
+// Appointment logic: list, create with date rules, edit and cancel. Every change writes an audit entry.
 const Appointment = require('../models/Appointment');
 const Patient = require('../models/Patient');
 const httpError = require('../utils/httpError');
 const withTransaction = require('../utils/withTransaction');
+const pickFields = require('../utils/pickFields');
 const { logAction } = require('./auditService');
 
 const EDITABLE_FIELDS = ['dateTime', 'clinician', 'reason'];
-
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
 function checkAppointmentDate(value) {
@@ -22,8 +19,7 @@ function checkAppointmentDate(value) {
   return date;
 }
 
-// One database round trip: $lookup joins each appointment's patient (ID and name only) inside MongoDB,
-// instead of populate(), which needs a second query.
+// $lookup joins each patient's ID and name in the same query; populate() would need a second one.
 async function listAppointments(patientId) {
   const match = {};
   if (patientId) {
@@ -54,15 +50,9 @@ async function createAppointment(body = {}, user) {
   return appointment.populate('patient', 'patientId name');
 }
 
-// Only date/time, clinician and reason can be edited. The patient and status cannot be changed here.
-async function updateAppointment(id, body = {}, user) {
-  const changes = {};
-  for (const field of EDITABLE_FIELDS) {
-    if (body[field] !== undefined) changes[field] = body[field];
-  }
-  if (Object.keys(changes).length === 0) throw httpError(400, 'Nothing to update');
-  if (changes.dateTime !== undefined) changes.dateTime = checkAppointmentDate(changes.dateTime);
-
+// Matching on status 'scheduled' makes the check and the write one atomic step, so a double click
+// or a completed/cancelled appointment gets a 409. The change and its audit entry share one transaction.
+async function changeScheduled(id, changes, user, action, conflictMessage) {
   return withTransaction(async (session) => {
     const appointment = await Appointment.findOneAndUpdate({ _id: id, status: 'scheduled' }, changes, {
       returnDocument: 'after',
@@ -70,24 +60,22 @@ async function updateAppointment(id, body = {}, user) {
       session,
     }).populate('patient', 'patientId name');
 
-    if (!appointment) throw httpError(409, 'Only scheduled appointments can be edited');
-    await logAction(user, 'appointment.update', appointment.patient.patientId, session);
+    if (!appointment) throw httpError(409, conflictMessage);
+    await logAction(user, action, appointment.patient.patientId, session);
     return appointment;
   });
 }
 
-async function cancelAppointment(id, user) {
-  return withTransaction(async (session) => {
-    const appointment = await Appointment.findOneAndUpdate(
-      { _id: id, status: 'scheduled' },
-      { status: 'cancelled' },
-      { returnDocument: 'after', session }
-    ).populate('patient', 'patientId name');
+// The patient and status can't be changed through an edit.
+async function updateAppointment(id, body, user) {
+  const changes = pickFields(body, EDITABLE_FIELDS);
+  if (Object.keys(changes).length === 0) throw httpError(400, 'Nothing to update');
+  if (changes.dateTime !== undefined) changes.dateTime = checkAppointmentDate(changes.dateTime);
+  return changeScheduled(id, changes, user, 'appointment.update', 'Only scheduled appointments can be edited');
+}
 
-    if (!appointment) throw httpError(409, 'Only scheduled appointments can be cancelled');
-    await logAction(user, 'appointment.cancel', appointment.patient.patientId, session);
-    return appointment;
-  });
+async function cancelAppointment(id, user) {
+  return changeScheduled(id, { status: 'cancelled' }, user, 'appointment.cancel', 'Only scheduled appointments can be cancelled');
 }
 
 module.exports = { listAppointments, createAppointment, updateAppointment, cancelAppointment, checkAppointmentDate };

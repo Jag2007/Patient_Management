@@ -1,7 +1,5 @@
-// AI tests: the patient tools' permission and argument checks, the chat guardrails, the judge and chat history.
-// Groq is replaced with a Jest mock, so these tests never call the real API.
-// The mock lets us simulate the model misbehaving (broken JSON, fake sources) and check our backend catches it.
-// The judge is mocked separately (it passes by default) so each test controls the answer and the verdict apart.
+// AI tests: patient tool checks, chat guardrails, the judge hookup and chat history.
+// Groq and the judge are mocked, so no real API calls are made.
 jest.mock('../services/llmService');
 jest.mock('../services/judgeService');
 

@@ -1,6 +1,5 @@
-// The only file that talks to Groq. The API key is read from .env and never leaves the backend.
-// Settings are chosen for reliability: temperature 0, a 15 second timeout, and no automatic retries.
-// Groq errors are turned into friendly messages (busy, too slow, unavailable) for the user.
+// The only file that calls Groq; the API key never leaves the backend.
+// Temperature 0, 15 s timeout, no retries, and Groq errors become friendly messages.
 const Groq = require('groq-sdk');
 const httpError = require('../utils/httpError');
 

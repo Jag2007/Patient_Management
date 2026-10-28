@@ -1,4 +1,4 @@
-// Staff management: adds the "active" flag and last login time to users, and marks existing accounts active.
+// Adds active and lastLoginAt to users, and marks existing accounts active.
 const { ensureCollection } = require('./helpers');
 
 module.exports = {

@@ -1,11 +1,11 @@
-// Modal form for booking a new appointment, or editing a scheduled one (pass `appointment`).
-// When editing, the patient is fixed and only date/time, clinician and reason can change.
-// The date picker blocks past dates and dates more than a year ahead; the backend checks again.
+// Modal for booking an appointment, or editing a scheduled one when `appointment` is passed.
+// Saves through /api/appointments; when editing, the patient can't be changed.
 import { useEffect, useState } from 'react';
 import { App, DatePicker, Form, Input, Modal, Select } from 'antd';
 import dayjs from 'dayjs';
 import api, { errorMessage, showFieldErrors } from '../api/client';
 
+// No past dates and nothing more than a year ahead (the backend checks this too).
 function isOutsideBookingWindow(day) {
   return day.isBefore(dayjs(), 'day') || day.isAfter(dayjs().add(1, 'year'));
 }
@@ -39,7 +39,7 @@ export default function AppointmentFormModal({ open, appointment, onClose, onSav
     setSaving(true);
     try {
       if (isEdit) {
-        // Only send what changed, so an unchanged date is not re-checked.
+        // Send the date only if it changed, so the backend doesn't re-check a date we didn't touch.
         const changes = { clinician: values.clinician, reason: values.reason };
         if (!values.dateTime.isSame(dayjs(appointment.dateTime), 'minute')) changes.dateTime = values.dateTime.toISOString();
         await api.put(`/appointments/${appointment._id}`, changes);

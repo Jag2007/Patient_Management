@@ -1,5 +1,4 @@
-// Appointment endpoints: list (optionally by ?patientId=), create, edit and cancel.
-// Thin on purpose; all rules (date checks, atomic edit/cancel, transactions) live in appointmentService.
+// Appointment routes: list (optional ?patientId=), create, edit and cancel. The logic is in appointmentService.
 const express = require('express');
 const { requireRole } = require('../middleware/auth');
 const appointmentService = require('../services/appointmentService');

@@ -1,6 +1,4 @@
-// A fictional patient record managed by clinic staff.
-// All validation rules (required fields, DOB not in future, email, phone) live here,
-// so every create and update goes through the same checks. patientId looks like P-0001.
+// Patient model with all field validation, so create and edit use the same checks. patientId looks like P-0001.
 const mongoose = require('mongoose');
 
 const patientSchema = new mongoose.Schema(

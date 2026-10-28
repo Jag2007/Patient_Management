@@ -1,5 +1,4 @@
-# API reference for the Patient Management backend (OpenAPI 3).
-# Served as interactive Swagger docs at /api/docs (see app.js).
+# OpenAPI spec for the backend, served as Swagger docs at /api/docs (see app.js).
 # Log in with POST /auth/login, then click "Authorize" and paste the token to try the other endpoints.
 openapi: 3.0.3
 info:

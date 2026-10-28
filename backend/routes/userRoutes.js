@@ -1,6 +1,4 @@
-// Staff management endpoints: admin only. Staff get 403 from requireRole, even if they call the API directly.
-// GET / lists accounts · POST / creates a staff login · PUT /:id/password resets it
-// PATCH /:id/active disables or enables it · DELETE /:id removes it. Rules live in userService.
+// Staff account routes (admin only): list, create, reset password, enable/disable and delete. Calls userService.
 const express = require('express');
 const { requireRole } = require('../middleware/auth');
 const userService = require('../services/userService');

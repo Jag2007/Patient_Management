@@ -1,5 +1,4 @@
-// Escapes special regex characters so user text is matched literally (e.g. "(.*" can't widen a search).
-// Used by patient search and by the AI tools' name lookup.
+// Escapes regex special characters so user text is matched literally. Used by patient search and the AI tools.
 function escapeRegex(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

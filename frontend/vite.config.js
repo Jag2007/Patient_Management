@@ -1,7 +1,5 @@
-// Vite config. In development, "/api" requests are forwarded to the Express backend,
-// so the browser only ever talks to one origin and no API keys are needed in the frontend.
-// In the build, React gets its own file, so the browser caches it once and only re-downloads our small app files
-// after a change. Ant Design is left to split per page (measured: the login page then needs 287 KB of JS instead of 422 KB).
+// Vite config: in dev, /api is proxied to the Express backend so the browser talks to one origin.
+// The build puts React in its own chunk so browsers keep it cached between deploys.
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 

@@ -1,6 +1,4 @@
-// Login page: a calm welcome panel with an animated heartbeat line on the left, the login form on the right.
-// Sends username and password to the backend and stores the returned token.
-// Any backend error (e.g. "Invalid username or password") is shown in an Alert.
+// Login page: posts to /api/auth/login, saves the session (session.js) and opens /patients.
 import { useState } from 'react';
 import { Alert, Button, Card, Form, Input, Typography } from 'antd';
 import { CheckCircleFilled, LockOutlined, UserOutlined } from '@ant-design/icons';
@@ -15,15 +13,7 @@ function HeartbeatLine() {
   return (
     <svg viewBox="0 0 400 80" width="100%" height="80" aria-hidden="true" style={{ maxWidth: 420, margin: '28px 0' }}>
       <path d="M0 40 H130 L145 40 L155 15 L170 65 L182 28 L192 40 H400" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-      <path
-        className="ecg-line"
-        d="M0 40 H130 L145 40 L155 15 L170 65 L182 28 L192 40 H400"
-        fill="none"
-        stroke={colors.accent}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path className="ecg-line" d="M0 40 H130 L145 40 L155 15 L170 65 L182 28 L192 40 H400" fill="none" stroke={colors.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -38,6 +28,7 @@ export default function LoginPage() {
     try {
       const { data } = await api.post('/auth/login', values);
       saveSession(data);
+      // Full reload so App reads the new session (admin routes are decided when App renders).
       window.location.href = '/patients';
     } catch (err) {
       setError(errorMessage(err));
@@ -60,9 +51,7 @@ export default function LoginPage() {
       >
         <div className="page-enter">
           <BrandMark size={52} light />
-          <Typography.Title style={{ color: '#fff', margin: '28px 0 8px', fontWeight: 800, letterSpacing: '-0.02em' }}>
-            Patient Management
-          </Typography.Title>
+          <Typography.Title style={{ color: '#fff', margin: '28px 0 8px', fontWeight: 800, letterSpacing: '-0.02em' }}>Patient Management</Typography.Title>
           <Typography.Paragraph style={{ color: 'rgba(255,255,255,0.75)', fontSize: 16, maxWidth: 440, margin: 0 }}>
             One calm place for your clinic team to manage patients, appointments and everyday questions.
           </Typography.Paragraph>
