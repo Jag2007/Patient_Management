@@ -13,6 +13,7 @@ const SUGGESTIONS = [
   'What is the late cancellation fee?',
   'Which insurance partners do you work with?',
   'Show appointments for P-0003',
+  'Tell me about Priya Sharma',
 ];
 
 function Message({ message }) {
@@ -86,7 +87,7 @@ export default function ChatPage() {
     <>
       <PageHeader
         title="AI Assistant"
-        subtitle="Answers come only from clinic documents and appointment records. It does not give medical advice."
+        subtitle="Answers come only from clinic documents and patient records. It does not give medical advice."
       />
       <Card styles={{ body: { padding: 0 } }}>
         <div style={{ height: 'calc(100vh - 330px)', minHeight: 320, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: colors.background }}>
@@ -123,7 +124,7 @@ export default function ChatPage() {
                   ask();
                 }
               }}
-              placeholder="Ask about the clinic, or a patient's appointments (e.g. P-0003)"
+              placeholder="Ask about the clinic, or about a patient by name or ID (e.g. Priya Sharma, P-0003)"
               maxLength={500}
               showCount
               autoSize={{ minRows: 1, maxRows: 4 }}

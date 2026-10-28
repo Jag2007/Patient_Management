@@ -1,6 +1,6 @@
 # Patient Management System
 
-A small clinic web app for managing **fictional** patients and appointments, with an AI assistant that answers questions from the clinic's FAQ documents and can look up a patient's appointments through one permission-checked tool.
+A small clinic web app for managing **fictional** patients and appointments. It includes an AI assistant that answers questions from the clinic's FAQ documents and can look up a patient's details or appointments, by name or ID, through two permission-checked tools.
 
 If the answer is not in that data, the assistant says so instead of guessing.
 
@@ -11,11 +11,11 @@ If the answer is not in that data, the assistant says so instead of guessing.
 ## Features
 
 - **Login** for clinic staff with two roles: `admin` and `staff`
-- **Patients:** create, view, edit, list, and search by name or patient ID
-- **Appointments:** create, view, and cancel (with a confirmation step)
-- **AI assistant:** answers from clinic FAQ documents and shows its sources
-- **AI tool:** `get_patient_appointments`, which the AI can request and the backend checks before running
-- **Audit log:** records who viewed or changed which patient (admin only)
+- **Patients:** create, view, edit, list, and live search by name or patient ID
+- **Appointments:** create, view, filter by status, and cancel (with a confirmation step)
+- **AI assistant:** answers from clinic FAQ documents and patient records, and always shows its sources
+- **AI tools:** `get_patient_appointments` and `get_patient_details`, which the AI can request and the backend checks before running
+- **Audit log:** records who viewed or changed which patient, with a per-patient activity timeline (admin only)
 
 ---
 
@@ -41,8 +41,8 @@ Patient_Management/
 │   ├── models/          # Mongoose schemas (data + validation)
 │   ├── routes/          # API endpoints (thin: read request, call service, respond)
 │   ├── middleware/      # login check, role check, error handler
-│   ├── services/        # business logic (patients, appointments, audit, AI chat)
-│   ├── tools/           # the AI tool and its permission rules
+│   ├── services/        # business logic (patients, appointments, audit, retrieval, LLM, chat)
+│   ├── tools/           # the AI tools and their permission rules
 │   ├── utils/           # small helpers (httpError)
 │   ├── docs/            # clinic FAQ documents (fictional)
 │   ├── seed/            # script that fills the database with demo data
@@ -51,9 +51,10 @@ Patient_Management/
 │   └── server.js        # starts the server
 ├── frontend/
 │   └── src/
-│       ├── api/         # one axios client for all backend calls
-│       ├── pages/       # Login, Patients, Appointments, Chat, Audit Log
-│       └── components/  # shared UI pieces
+│       ├── api/         # one axios client for all backend calls + session storage
+│       ├── pages/       # Login, Patients, Appointments, AI Assistant, Audit Log
+│       ├── components/  # layout, forms, activity drawer
+│       └── theme.js     # colours and Ant Design theme
 ├── .env.example
 └── README.md
 ```
@@ -64,7 +65,7 @@ Patient_Management/
 
 ### Prerequisites
 - Node.js 18 or later
-- A MongoDB database (MongoDB Atlas free tier works)
+- A MongoDB database (MongoDB Atlas free tier or a local `mongod`)
 - A Groq API key from https://console.groq.com/keys
 
 ### Environment variables
@@ -73,21 +74,29 @@ Copy `.env.example` to `backend/.env` and fill in the values.
 
 | Variable | Description |
 |---|---|
-| `PORT` | Backend port (default `5050`) |
-| `MONGO_URI` | MongoDB connection string |
+| `PORT` | Backend port (default `5050`; port 5000 is used by AirPlay on macOS) |
+| `MONGO_URI` | MongoDB connection string, including the database name |
 | `MONGO_URI_TEST` | A separate database used only by tests |
-| `JWT_SECRET` | Random secret used to sign login tokens |
+| `JWT_SECRET` | Random secret used to sign login tokens (e.g. `openssl rand -hex 32`) |
 | `GROQ_API_KEY` | Groq API key (used only by the backend) |
 | `GROQ_MODEL` | Model name, e.g. `openai/gpt-oss-20b` |
 | `CLIENT_ORIGIN` | Frontend URL allowed by CORS (default `http://localhost:5173`) |
+
+### Database setup
+
+No migrations are needed. The Mongoose schemas in `backend/models/` define the collections, and the seed script creates the collections, indexes (including the text index used by the AI) and demo data:
+
+```bash
+cd backend
+npm install
+npm run seed
+```
 
 ### Run the app
 
 ```bash
 # 1. Backend
 cd backend
-npm install
-npm run seed     # loads demo users, patients, appointments and FAQ documents
 npm run dev      # http://localhost:5050
 
 # 2. Frontend (in a new terminal)
@@ -95,6 +104,8 @@ cd frontend
 npm install
 npm run dev      # http://localhost:5173
 ```
+
+The frontend forwards `/api` requests to the backend (see `frontend/vite.config.js`), so the browser only talks to one address.
 
 ### Demo logins
 
@@ -133,8 +144,8 @@ Every request goes through the same four steps:
 |---|:-:|:-:|
 | Manage patients | ✅ | ✅ |
 | Manage appointments | ✅ | ✅ |
-| Use the AI assistant and tool | ✅ | ✅ |
-| View the audit log | ✅ | ❌ |
+| Use the AI assistant and its tools | ✅ | ✅ |
+| View the audit log and patient activity | ✅ | ❌ |
 
 Permissions are enforced in backend code. The frontend hides the Audit Log menu for staff only for convenience; calling the API directly still returns `403`.
 
@@ -150,12 +161,12 @@ Permissions are enforced in backend code. The frontend hides the Audit Log menu 
 | `audit_logs` | Who did what to which patient | `username`, `action`, `patientId`, `createdAt` |
 | `faq_sections` | Clinic FAQ documents split into paragraphs, searchable by the AI | `source`, `section`, `text` |
 
+**Indexes:** `patients.patientId` (unique), `patients.name`, `users.username` (unique), `appointments.patient + dateTime`, and a **text index** on `faq_sections.text`.
+
 **Validation rules**
 - Patient: name required, date of birth not in the future, valid email, phone 10–13 digits
 - Appointment: all fields required, date must be in the future and within one year
 - Status is one of `scheduled`, `completed`, `cancelled`
-
-Schemas live in `backend/models/`. Running `npm run seed` creates the collections, indexes and demo data.
 
 ---
 
@@ -168,10 +179,10 @@ Schemas live in `backend/models/`. Running `npm run seed` creates the collection
 | POST | `/api/patients` | admin, staff | Create a patient |
 | GET | `/api/patients/:patientId` | admin, staff | View a patient |
 | PUT | `/api/patients/:patientId` | admin, staff | Edit a patient |
-| GET | `/api/appointments` | admin, staff | List appointments |
+| GET | `/api/appointments?patientId=` | admin, staff | List appointments |
 | POST | `/api/appointments` | admin, staff | Create an appointment |
 | PATCH | `/api/appointments/:id/cancel` | admin, staff | Cancel an appointment |
-| POST | `/api/chat` | admin, staff | Ask the AI assistant |
+| POST | `/api/chat` | admin, staff | Ask the AI assistant (rate limited) |
 | GET | `/api/audit-logs?patientId=` | admin | View the audit log, or one patient's activity |
 
 ---
@@ -185,51 +196,73 @@ Schemas live in `backend/models/`. Running `npm run seed` creates the collection
 ```mermaid
 flowchart TD
     A["Question"] --> B{"Safe to answer?"}
-    B -- "No: empty, too long,<br/>or asks for diagnosis" --> X["Polite refusal"]
+    B -- "No: empty, too long,<br/>diagnosis or injection" --> X["Polite refusal"]
     B -- Yes --> C["Find matching FAQ sections"]
-    C --> D["Send question + FAQ sections to the AI"]
-    D --> E{"AI asks for a patient's<br/>appointments?"}
-    E -- Yes --> F["Backend runs the tool<br/>and sends the result back to the AI"]
-    E -- No --> G
-    F --> G{"Is the answer backed<br/>by the data?"}
+    C --> C2{"FAQ match, or mentions<br/>a patient name / ID?"}
+    C2 -- No --> Y
+    C2 -- Yes --> D["Send question + FAQ sections to the AI"]
+    D --> E{"AI asks for a<br/>patient tool?"}
+    E -- Yes --> F["Backend checks and runs the tool,<br/>sends the result back (max 2 rounds)"]
+    F --> G
+    E -- No --> G{"Is the answer backed<br/>by the data?"}
     G -- No --> Y["I don't have enough information to answer that."]
     G -- Yes --> Z["Answer + sources"]
 ```
 
-1. **Check the question.** It must be 1–500 characters. Questions asking for a diagnosis, treatment or medication dosage are refused without calling the AI.
-2. **Find relevant FAQ sections.** MongoDB text search returns the top 3 matching paragraphs from the clinic documents.
-3. **Ask the AI.** The AI gets the question, the FAQ sections and the tool it may use. It is told to answer only from this information and to reply in a fixed JSON format.
-4. **Run the tool if requested.** If the AI asks for a patient's appointments, the backend checks and runs the tool (see below), then asks the AI once more with the result.
-5. **Check the answer.** If the AI says it can't answer, or cites a source that wasn't actually provided, the user gets *"I don't have enough information to answer that."*
-6. **Show sources.** Source names (e.g. `cancellation-policy.md`) are added by the backend, so the AI cannot invent them.
+1. **Check the question.** It must be 1–500 characters. Questions asking for a diagnosis, treatment or medication dosage, and obvious prompt-injection phrases, are refused without calling the AI.
+2. **Find relevant FAQ sections.** Common question words are removed, then MongoDB text search returns the top 3 matching paragraphs (labelled `S1`–`S3`).
+3. **Decide whether to call the AI.** If no FAQ section matches and the question doesn't mention a known patient name or ID, the user gets the fallback and **the AI is never called**.
+4. **Ask the AI.** It gets the question, today's date, the FAQ sections, and the tools its user is allowed to use. It must answer only from this data and reply in a fixed JSON format: `{ can_answer, answer, used_source_ids }`.
+5. **Run tools if requested.** The backend checks and runs each tool (see below), then sends the result back to the AI. This happens at most 2 rounds, so the model cannot loop.
+6. **Check the answer.** If the JSON is broken, `can_answer` is false, or the AI cites a source that wasn't actually provided, the user gets *"I don't have enough information to answer that."*
+7. **Show sources.** Source labels (e.g. `cancellation-policy.md (section 2)` or `Patient record for P-0003 (Priya Sharma)`) are built by the backend, so the AI cannot invent them.
 
-If Groq is slow, down or rate-limited, the user sees a friendly message instead of an error.
+### LLM settings (`services/llmService.js`, the only file that talks to Groq)
+
+| Setting | Value | Why |
+|---|---|---|
+| Model | `GROQ_MODEL` env (`openai/gpt-oss-20b`) | Fast, supports tool calling, swappable without code changes |
+| Temperature | 0 | Most predictable output |
+| Timeout | 15 seconds, no automatic retries | Fail fast with a clear message |
+
+If Groq is slow, down or rate-limited, the user sees a friendly message ("The assistant is busy right now…") instead of an error.
+
+### Why keyword search instead of embeddings?
+
+The FAQ is small, and keyword search is simple, predictable and easy to debug: you can see exactly why a paragraph matched. The trade-off is that it misses synonyms (see Known limitations).
 
 ---
 
-## AI tool: `get_patient_appointments`
+## AI tools
 
-The AI can **request** this tool, but only the backend decides whether it runs.
+The AI can **request** these tools using Groq function calling, but only the backend decides whether they run.
+
+| Tool | Returns |
+|---|---|
+| `get_patient_appointments` | Date/time, clinician, reason and status of each appointment |
+| `get_patient_details` | Patient ID, name, date of birth, age, phone, email, address |
+
+Each tool takes **exactly one** argument: `patientId` (e.g. `P-0003`) or `name` (e.g. `Priya Sharma`).
 
 | Step | What the backend does |
 |---|---|
-| 1. Permission | Checks the logged-in user's role is allowed to use the tool |
-| 2. Validation | Accepts exactly one argument, `patientId`, in the format `P-0001` |
-| 3. Audit | Records who looked up which patient |
-| 4. Query | Runs one fixed, read-only database query |
-| 5. Limit | Returns only date/time, clinician, reason and status |
+| 1. Permission | Checks the logged-in user's role is in `TOOL_PERMISSIONS` for that tool. Tools the user can't use are not even offered to the AI. |
+| 2. Validation | Arguments must be valid JSON with exactly one field: `patientId` in the format `P-0000`, or a plain name |
+| 3. Find patient | If no patient matches, or a name matches several patients, the backend replies directly (e.g. *"I found more than one matching patient: P-0003 Ravi Kumar, P-0004 Ravi Shankar. Please ask again with the patient ID."*) without asking the AI to guess |
+| 4. Audit | Records who looked up which patient (`ai.tool.get_patient_details`, etc.) |
+| 5. Query | Runs one fixed, read-only database query and returns only the fields above |
 
-The AI never gets direct database access, and it never sees phone numbers, emails or addresses.
+The AI never gets direct database access. Medical data such as lab values is not stored, so questions like *"What is Sneha's blood pressure?"* get the "not enough information" answer.
 
 ---
 
 ## Safety
 
 - **Synthetic data only.** No real patient information.
-- **No diagnosis or treatment.** These questions are refused.
-- **No made-up answers.** The AI answers only from the FAQ or the tool result; otherwise it says it doesn't know.
-- **No made-up sources.** Sources are built by the backend.
-- **Untrusted input.** User messages and documents are treated as data, not instructions.
+- **No diagnosis or treatment.** These questions are refused before reaching the AI, and the prompt forbids it too.
+- **No made-up answers.** The AI answers only from the FAQ or tool results; otherwise it says it doesn't know.
+- **No made-up sources.** Sources are built by the backend from what was actually retrieved.
+- **Untrusted input.** User messages, documents and tool results are wrapped in tags and treated as data, not instructions. Angle brackets are stripped from questions.
 - **Access control in code.** Permissions are checked by the backend, never by the AI prompt.
 - **No secrets in the repo.** API keys live only in `backend/.env`, which is git-ignored.
 
@@ -237,9 +270,15 @@ The AI never gets direct database access, and it never sees phone numbers, email
 
 ## Bonus features
 
-**Audit log.** Viewing, creating or editing a patient, creating or cancelling an appointment, and every AI tool call are recorded with the username, action and patient ID. No other patient details are stored. Only admins can view it.
+**Audit log.** Viewing, creating or editing a patient, creating or cancelling an appointment, and every AI tool call are recorded with the username, action and patient ID. No other patient details are stored. Admins can filter the log by user or action, and click a patient ID (or "Activity" on the Patients page) to see that patient's full history as a timeline.
 
-**Safe cancellation.** The UI asks *"Are you sure?"* before cancelling. The backend cancels with a single atomic update that only matches appointments still `scheduled`, so a double click can't cancel twice. The second attempt gets `409 Conflict`.
+**Safe cancellation.** The UI asks *"Are you sure?"* before cancelling. The backend cancels with a single atomic update that only matches appointments still `scheduled`:
+
+```js
+Appointment.findOneAndUpdate({ _id: id, status: 'scheduled' }, { status: 'cancelled' })
+```
+
+A double click can't cancel twice; the second attempt gets `409 Conflict`. No multi-document transaction is needed, because MongoDB updates to a single document are atomic.
 
 ---
 
@@ -250,16 +289,27 @@ cd backend
 npm test
 ```
 
-Tests use a separate test database and do not call the AI.
+30 tests run against the separate `MONGO_URI_TEST` database. The AI tests replace Groq with a Jest mock, so they never call the real API. That also lets them simulate the model misbehaving.
 
-- Invalid patient data is rejected
-- Appointment in the past is rejected
-- Appointment more than a year ahead is rejected
+**Core API**
+- Requests without a token are rejected; wrong username and wrong password give the same error
+- Invalid patient data is rejected with a message per field
+- Appointments in the past or more than a year ahead are rejected
 - Cancelling the same appointment twice fails the second time
-- Staff get `403` on the audit log
-- The AI tool rejects a disallowed role, a bad patient ID and extra arguments
-- An off-topic question returns the "not enough information" answer
-- A diagnosis question is refused
+- Staff get `403` on the audit log; the log stores only patient IDs
+
+**AI tools**
+- A disallowed role, an unknown tool, a bad patient ID, extra arguments, both `patientId` and `name`, and non-JSON arguments are all rejected
+- Lookup by name works, and an ambiguous name returns only the list of matches
+- The appointments tool returns only its 4 fields and writes an audit entry
+
+**AI chat guardrails**
+- Diagnosis and injection questions are refused without calling the AI
+- An unrelated question gets the fallback without calling the AI
+- A fake source (`S9`) or broken JSON from the model gives the fallback
+- A tool request is run and its source is shown; no appointments gives a fixed reply
+- The model is stopped after 2 tool rounds
+- An empty question returns `400`; an AI timeout returns a friendly message
 
 ---
 
@@ -267,7 +317,10 @@ Tests use a separate test database and do not call the AI.
 
 | Limitation | Next step |
 |---|---|
-| Keyword search misses synonyms ("fees" vs "billing") | Add embedding-based search |
-| No chat history or streaming | Store conversations; stream responses |
-| Diagnosis filter is keyword-based | Add a moderation model |
-| No per-clinician access to patients | Restrict each clinician to their own patients |
+| Keyword search misses synonyms ("fees" vs "billing") | Add embedding-based search (e.g. Atlas Vector Search) |
+| No chat history or streaming responses | Store conversations per user; stream answers with server-sent events |
+| Safety filter is keyword-based and can be bypassed by rephrasing (the prompt and tool limits are the second line of defence) | Add a moderation model before the main call |
+| No check that numbers in an answer appear in the source text | Compare numbers in the answer against the retrieved text |
+| All staff can see all patients | Assign patients to clinicians and check ownership in services and tools |
+| JWT is stored in the browser and there are no refresh tokens | httpOnly cookies with refresh-token rotation |
+| Groq free tier allows about 8,000 tokens per minute | Paid tier or caching of common FAQ answers |

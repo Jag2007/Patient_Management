@@ -1,4 +1,4 @@
-// AI tests: the tool's permission and argument checks, and the chat guardrails.
+// AI tests: the patient tools' permission and argument checks, and the chat guardrails.
 // Groq is replaced with a Jest mock, so these tests never call the real API.
 // The mock lets us simulate the model misbehaving (broken JSON, fake sources) and check our backend catches it.
 jest.mock('../services/llmService');
@@ -8,7 +8,7 @@ const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
 const AuditLog = require('../models/AuditLog');
 const FaqSection = require('../models/FaqSection');
-const { runTool } = require('../tools/getPatientAppointments');
+const { runTool } = require('../tools/patientTools');
 const chatService = require('../services/chatService');
 const { app, request, setupTestDb, loginAs, closeTestDb } = require('./helpers');
 
@@ -21,6 +21,8 @@ beforeAll(async () => {
 
   const patient = await Patient.create({ patientId: 'P-0001', name: 'Test Patient', dateOfBirth: '1990-01-01', phone: '9876543210', email: 'test@example.com' });
   await Patient.create({ patientId: 'P-0002', name: 'No Visits', dateOfBirth: '1990-01-01', phone: '9876543211' });
+  await Patient.create({ patientId: 'P-0003', name: 'Ravi Kumar', dateOfBirth: '1980-01-01', phone: '9876543212' });
+  await Patient.create({ patientId: 'P-0004', name: 'Ravi Shankar', dateOfBirth: '1981-01-01', phone: '9876543213' });
   await Appointment.create({ patient: patient._id, dateTime: new Date(Date.now() + 86400000), clinician: 'Dr. Test', reason: 'Check-up' });
   await FaqSection.create({ source: 'cancellation-policy.md', section: 1, text: 'Cancellation Policy: The late cancellation fee is 300 rupees.' });
 });
@@ -32,7 +34,11 @@ function modelReplies(json) {
   return { content: JSON.stringify(json) };
 }
 
-describe('AI tool: get_patient_appointments', () => {
+function modelCallsTool(name, args, id = 'call_1') {
+  return { content: '', tool_calls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] };
+}
+
+describe('AI patient tools', () => {
   test('denies a role that is not allowed', async () => {
     const result = await runTool('get_patient_appointments', '{"patientId":"P-0001"}', { username: 'x', role: 'receptionist' });
     expect(result.error).toMatch(/permission/);
@@ -46,6 +52,30 @@ describe('AI tool: get_patient_appointments', () => {
   test('rejects extra arguments', async () => {
     const result = await runTool('get_patient_appointments', '{"patientId":"P-0001","includePhone":true}', staff);
     expect(result.error).toMatch(/exactly one argument/);
+  });
+
+  test('rejects patientId and name together', async () => {
+    const result = await runTool('get_patient_details', '{"patientId":"P-0001","name":"Test Patient"}', staff);
+    expect(result.error).toMatch(/exactly one argument/);
+  });
+
+  test('rejects an unknown tool', async () => {
+    const result = await runTool('delete_patient', '{"patientId":"P-0001"}', staff);
+    expect(result.error).toMatch(/Unknown tool/);
+  });
+
+  test('finds a patient by name', async () => {
+    const result = await runTool('get_patient_details', '{"name":"test patient"}', staff);
+    expect(result.patient.patientId).toBe('P-0001');
+  });
+
+  test('returns the list of matches when a name is ambiguous, without returning any details', async () => {
+    const result = await runTool('get_patient_details', '{"name":"Ravi"}', staff);
+    expect(result.matches).toEqual([
+      { patientId: 'P-0003', name: 'Ravi Kumar' },
+      { patientId: 'P-0004', name: 'Ravi Shankar' },
+    ]);
+    expect(result.patient).toBeUndefined();
   });
 
   test('rejects arguments that are not JSON', async () => {
@@ -101,26 +131,34 @@ describe('Chat guardrails', () => {
 
   test('runs the tool when the model requests it, then answers with the tool as the source', async () => {
     llm.chat
-      .mockResolvedValueOnce({
-        content: '',
-        tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'get_patient_appointments', arguments: '{"patientId":"P-0001"}' } }],
-      })
+      .mockResolvedValueOnce(modelCallsTool('get_patient_appointments', { patientId: 'P-0001' }))
       .mockResolvedValueOnce(modelReplies({ can_answer: true, answer: 'One appointment with Dr. Test.', used_source_ids: ['T1'] }));
 
     const result = await chatService.answerQuestion('Show appointments for P-0001', staff);
     expect(result.answer).toBe('One appointment with Dr. Test.');
-    expect(result.sources).toEqual([{ id: 'T1', label: 'Appointment records for P-0001' }]);
+    expect(result.sources).toEqual([{ id: 'T1', label: 'Appointment records for P-0001 (Test Patient)' }]);
     expect(llm.chat).toHaveBeenCalledTimes(2);
   });
 
   test('says no appointments were found without asking the AI to guess', async () => {
-    llm.chat.mockResolvedValueOnce({
-      content: '',
-      tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'get_patient_appointments', arguments: '{"patientId":"P-0002"}' } }],
-    });
+    llm.chat.mockResolvedValueOnce(modelCallsTool('get_patient_appointments', { patientId: 'P-0002' }));
     const result = await chatService.answerQuestion('Show appointments for P-0002', staff);
     expect(result.answer).toBe(chatService.NO_APPOINTMENTS);
     expect(llm.chat).toHaveBeenCalledTimes(1);
+  });
+
+  test('asks for the patient ID when a name matches several patients', async () => {
+    llm.chat.mockResolvedValueOnce(modelCallsTool('get_patient_appointments', { name: 'Ravi' }));
+    const result = await chatService.answerQuestion('Show appointments for Ravi', staff);
+    expect(result.answer).toMatch(/more than one matching patient: P-0003 Ravi Kumar, P-0004 Ravi Shankar/);
+    expect(llm.chat).toHaveBeenCalledTimes(1);
+  });
+
+  test('stops after two tool rounds so the model cannot loop', async () => {
+    llm.chat.mockResolvedValue(modelCallsTool('get_patient_details', { patientId: 'P-0001' }));
+    const result = await chatService.answerQuestion('Tell me about P-0001', staff);
+    expect(result.answer).toBe(chatService.FALLBACK);
+    expect(llm.chat).toHaveBeenCalledTimes(3);
   });
 
   test('rejects an empty question with 400', async () => {
