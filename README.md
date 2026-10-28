@@ -313,6 +313,32 @@ npm test
 
 ---
 
+## Assignment checklist
+
+| Requirement | Where it is met |
+|---|---|
+| Create, view, edit, list patients with ID, name, DOB, contact details | `services/patientService.js`, `models/Patient.js`, `pages/PatientsPage.jsx` |
+| Search by name or ID, clear validation and error messages | `listPatients()` in `patientService.js`, `middleware/errorHandler.js` |
+| Create and view appointments with date/time, clinician, reason, status | `services/appointmentService.js`, `models/Appointment.js`, `pages/AppointmentsPage.jsx` |
+| Reject invalid appointment dates | `checkAppointmentDate()` in `appointmentService.js` + date picker limits |
+| Chat over clinic FAQ documents and synthetic patient data | `services/chatService.js`, `pages/ChatPage.jsx` |
+| LLM called only from the backend, no keys in the frontend | `services/llmService.js`, key read from `backend/.env` |
+| Retrieval with source references | `services/retrievalService.js`, sources built in `chatService.js` |
+| Say so when the answer is not supported | Retrieval gate, `can_answer` flag, source check → fixed fallback |
+| Handle timeouts, invalid input, AI/API failures | `checkQuestion()`, `llmService.js` error mapping, `errorHandler.js` |
+| At least one narrowly scoped tool with argument validation and permissions | `tools/patientTools.js` (`TOOL_PERMISSIONS`, `parseArguments()`) |
+| No unrestricted database access for the model | Tools run fixed read-only queries and return whitelisted fields |
+| Synthetic data only | `seed/seed.js`, `docs/*.md` |
+| No diagnosis or treatment functionality | `MEDICAL_PATTERNS` refusal + system prompt |
+| Permissions enforced before data access or tools (not by prompt) | `middleware/auth.js`, `canUseTool()` in `patientTools.js` |
+| User messages and documents treated as untrusted | Tags + "data, not instructions" prompt rule, angle brackets stripped, injection filter |
+| No secrets in the repo | `.gitignore`, `.env.example` with names only |
+| README, schema + seed data, `.env.example`, architecture note, tests, limitations | This README (Database, Architecture, AI assistant, AI tools, Testing, Known limitations), `npm run seed`, `backend/tests/` |
+| Bonus: audit events | `services/auditService.js`, `pages/AuditLogsPage.jsx`, activity drawer |
+| Bonus: cancellation with confirmation, transaction-safe | `Popconfirm` in `AppointmentsPage.jsx`, atomic `cancelAppointment()` |
+
+---
+
 ## Known limitations
 
 | Limitation | Next step |
