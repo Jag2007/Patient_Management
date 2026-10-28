@@ -40,7 +40,7 @@ frontend: ## Run only the frontend
 test: ## Run the backend tests (uses MONGO_URI_TEST, the AI is mocked)
 	cd backend && npm test
 
-eval: ## Ask the real AI 12 questions and check the answers and sources
+eval: ## Run the 38-question golden set against the real AI (results in backend/eval/RESULTS.md)
 	cd backend && npm run eval
 
 build: ## Build the frontend for production
