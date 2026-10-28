@@ -27,53 +27,41 @@ flowchart TB
 
 You need **Node.js 18+**, a **MongoDB** connection string ([Atlas free tier](https://cloud.mongodb.com) works) and a **Groq API key** ([get one here](https://console.groq.com/keys)).
 
-```bash
-git clone https://github.com/Jag2007/Patient_Management.git
-cd Patient_Management
-make setup     # installs packages, creates backend/.env (asks for your MongoDB URI and Groq key), loads demo data
-make dev       # opens on http://localhost:5173
-```
-
-Log in with `admin` / `Admin@123` or `staff` / `Staff@123`.
-
-<details>
-<summary>Without Make</summary>
+**1. Get the code**
 
 ```bash
 git clone https://github.com/Jag2007/Patient_Management.git
 cd Patient_Management
-cd backend && npm ci && npm run init-env && npm run setup && cd ..
-cd frontend && npm ci && cd ..
-cd backend && npm run dev          # terminal 1
-cd frontend && npm run dev         # terminal 2
 ```
-</details>
 
-**Environment:** `make setup` writes `backend/.env` from [`.env.example`](.env.example) for you. [`frontend/.env.example`](frontend/.env.example) is only needed when the frontend is hosted separately.
+**2. Set up and run.** Pick one. Make is only a shortcut: every `make` command runs the npm commands shown next to it, and the app itself doesn't need Make.
 
-### Make commands
+| Step | With Make (macOS / Linux) | Without Make (any OS) |
+|---|---|---|
+| Install packages | `make setup` does all three steps | `cd backend && npm ci` · `cd frontend && npm ci` |
+| Create `backend/.env` | | `cd backend && npm run init-env` |
+| Create and fill the database | | `cd backend && npm run setup` |
+| Run | `make dev` (both apps, Ctrl+C stops both) | `cd backend && npm run dev` and, in a second terminal, `cd frontend && npm run dev` |
 
-| Command | Does |
-|---|---|
-| `make setup` | First-time setup: install, create `.env`, create and fill the database |
-| `make dev` | Run backend and frontend together (Ctrl+C stops both) |
-| `make db` | Recreate the database and reload the demo data |
-| `make test` | Run the tests |
-| `make eval` | Check the AI's answers against the real model |
-| `make check` | Tests + production build + security audit, before pushing |
-| `make` | List every command |
+Then open **http://localhost:5173** and log in with `admin` / `Admin@123` or `staff` / `Staff@123`.
+
+- **`.env`:** the setup step asks for your MongoDB URI and Groq key, generates `JWT_SECRET`, and writes `backend/.env` from [`.env.example`](.env.example). [`frontend/.env.example`](frontend/.env.example) is only needed when the frontend is hosted separately.
+- **`npm ci`** ("clean install") installs the exact versions in `package-lock.json` and fails if they don't match `package.json`. `npm install` may update the lock file. `ci` gives everyone the same dependencies.
+
+**Other Make commands:** `make db` (reload demo data) · `make test` · `make eval` · `make check` (tests + build + security audit) · `make` (list all).
 
 ---
 
 ## API
 
-Interactive docs (Swagger): **http://localhost:5050/api/docs** once the backend is running. Spec: [`backend/openapi.yaml`](backend/openapi.yaml).
+- **Table of every endpoint:** [API.md](API.md)
+- **Interactive docs (Swagger):** http://localhost:5050/api/docs once the backend is running
 
 ---
 
 ## Architecture
 
-Diagrams are in [`architecture/`](architecture/README.md): [system](architecture/system.md) · [how the AI answers](architecture/ai-flow.md) · [database](architecture/database.md).
+Diagrams in [`architecture/`](architecture/README.md): [system](architecture/system.md) · [how the AI answers](architecture/ai-flow.md) (with chat history and context handling) · [database](architecture/database.md).
 
 ---
 
@@ -81,21 +69,23 @@ Diagrams are in [`architecture/`](architecture/README.md): [system](architecture
 
 ```
 Patient_Management/
-├── architecture/      diagrams and architecture note
+├── architecture/      diagrams
 ├── backend/
 │   ├── routes/        API endpoints
-│   ├── services/      business logic (patients, appointments, staff, chat, LLM)
+│   ├── services/      business logic (auth, patients, appointments, staff, chat, LLM)
 │   ├── tools/         the AI's patient tools
 │   ├── models/        database schemas
 │   ├── middleware/    login and role checks, error handling
 │   ├── docs/          clinic documents the AI answers from
 │   ├── setup/         .env helper, migrations, seed data
+│   ├── eval/          golden set and benchmark results
 │   ├── tests/         Jest tests
 │   └── openapi.yaml   API spec for Swagger
 ├── frontend/src/
 │   ├── pages/         Patients, Appointments, AI Assistant, Documents, Audit Log, Staff
 │   ├── components/    layout, forms, tables
-│   └── api/           backend client
+│   └── api/           backend client, token refresh
+├── API.md
 ├── Makefile
 └── .env.example
 ```
@@ -104,34 +94,42 @@ Patient_Management/
 
 ## Database
 
-MongoDB, six collections ([diagram](architecture/database.md)):
+MongoDB, seven collections ([diagram](architecture/database.md)):
 
 - **users**: admin and staff logins
 - **patients**: fictional patient records (ID, name, date of birth, contact details)
 - **appointments**: bookings linked to a patient, with clinician, reason and status
 - **audit_logs**: who viewed or changed which patient or staff account
 - **conversations**: saved AI chats
+- **refresh_tokens**: login sessions (hashed, auto-deleted when expired)
 - **faq_sections**: clinic documents split into searchable paragraphs
 
 Schema and indexes are created by [migrations](backend/setup/migrations/) (`make migrate`). Demo data in [`backend/setup/seed-data/`](backend/setup/seed-data/): 2 users, 150 patients across Hyderabad and Bangalore, 198 appointments (`make seed`).
 
 ---
 
-## Tests
+## Tests and evaluation
 
 ```bash
-make test    # 49 tests: login, patients, appointments, staff, AI tools, chat guardrails
-make eval    # 12 questions to the real model, checking answers and sources
+make test    # 54 tests: auth and refresh tokens, patients, appointments, staff, AI tools, chat guardrails
+make eval    # golden set against the real model; results in backend/eval/RESULTS.md
 ```
 
-Tests use `MONGO_URI_TEST` and a mocked LLM, so they never call Groq.
+**Mocked LLM:** in the tests, `jest.mock` replaces `llmService.chat` with a fake function that returns replies we script: a normal JSON answer, a tool request, broken JSON, a made-up source, a timeout. Nothing goes over the network, so tests are free, fast and give the same result every run, and they can check how the backend handles a model that misbehaves (which the real model rarely does on demand). The real model is measured separately by `make eval`.
+
+**Golden set:** 38 real questions with reference answers (clinic FAQ, patient details and appointments, multi-turn follow-ups, and questions it must decline), scored against the real model. Last run: **37/38 correct (97.4%)**, 100% of answers cited the right source, 100% of unsafe or unanswerable questions declined, about 2 s per question. The one miss and the weak spots are explained in [`backend/eval/RESULTS.md`](backend/eval/RESULTS.md).
 
 ---
 
 ## Known limitations
 
-- Keyword search only, so it misses synonyms ("fees" vs "billing")
-- Answers aren't streamed
-- Every staff member can see every patient
-- The login token is kept in the browser, with no refresh tokens
-- Groq's free tier limits how many questions per minute the AI can answer
+| Area | Limitation | Impact | Planned improvement |
+|---|---|---|---|
+| Retrieval | Keyword search (MongoDB `$text`), no embeddings | Misses synonyms and paraphrases ("fees" vs "billing"), so some answerable questions get the fallback | Hybrid search: Atlas Vector Search embeddings plus the current keyword score |
+| Answers | Responses arrive whole, not streamed | The user waits for the answer and the judge check (two LLM calls) | Stream progress states over SSE; keep the answer itself checked before display |
+| Chat memory | Only the last 6 messages are sent to the model | References to much older turns can't be resolved | Rolling summary of older turns stored on the conversation |
+| Access control | Every staff member can see every patient | No per-clinician data separation | Assign patients to clinicians and check ownership in services and AI tools |
+| Sessions | The access token lives in localStorage; the 30 s account cache is per server process | An XSS bug could read the 15-minute token; with several servers a disabled user may keep access for up to 30 s | Keep the access token in memory only; move the cache to Redis or drop it |
+| Safety filter | Diagnosis and injection refusal is regex-based | Rephrased requests can slip past the first check (the prompt and judge remain) | Add a moderation model before the main call |
+| Cost and limits | Groq free tier (~8,000 tokens per minute); up to 4 LLM calls per question | Bursts of questions get a "busy" message | Paid tier, caching of common FAQ answers |
+| Notifications | No patient notification on cancellation | Patients aren't told automatically | Send a WhatsApp/SMS message from `cancelAppointment` after the transaction commits, retried from a queue so a messaging failure never undoes a cancellation |

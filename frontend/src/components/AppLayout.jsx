@@ -5,7 +5,8 @@ import { Avatar, Button, Layout, Menu, Popconfirm, Spin, Typography } from 'antd
 import { AuditOutlined, CalendarOutlined, FileTextOutlined, IdcardOutlined, LogoutOutlined, MessageOutlined, TeamOutlined } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { getSession, clearSession } from '../api/session';
+import { getSession } from '../api/session';
+import { logout as endSession } from '../api/client';
 import { colors } from '../theme';
 import BrandMark from './BrandMark';
 import { preloadPages } from '../pages/pageLoaders';
@@ -35,8 +36,8 @@ export default function AppLayout() {
       : []),
   ];
 
-  function logout() {
-    clearSession();
+  async function logout() {
+    await endSession();
     navigate('/login', { replace: true });
   }
 

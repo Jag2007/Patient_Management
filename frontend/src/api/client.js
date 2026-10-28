@@ -1,10 +1,11 @@
-// Shared axios instance for the backend API: adds the login token and sends you to /login on a 401.
-// Also turns failed requests into readable messages and puts backend field errors under form inputs.
+// Shared axios instance for the backend API: adds the access token, and when it expires (401) gets a new one
+// from /auth/refresh and retries once. If that fails too, you go back to /login.
 import axios from 'axios';
-import { getToken, clearSession } from './session';
+import { getToken, clearSession, saveSession } from './session';
 
 // Locally Vite proxies /api to the backend; when hosted (e.g. Vercel) VITE_API_BASE_URL points at it.
-const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || '/api', timeout: 20000 });
+// withCredentials lets the browser send the httpOnly refresh-token cookie.
+const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || '/api', timeout: 20000, withCredentials: true });
 
 api.interceptors.request.use((config) => {
   const token = getToken();
@@ -12,18 +13,48 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// If several requests expire at once they all wait for the same refresh call.
+let refreshing = null;
+
+function refreshSession() {
+  refreshing ??= api
+    .post('/auth/refresh')
+    .then(({ data }) => saveSession(data))
+    .finally(() => {
+      refreshing = null;
+    });
+  return refreshing;
+}
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // A wrong password also returns 401; let the login page show that error instead of redirecting.
-    const isLoginRequest = error.config?.url?.includes('/auth/login');
-    if (error.response?.status === 401 && !isLoginRequest) {
-      clearSession();
-      window.location.href = '/login';
+  async (error) => {
+    const { config, response } = error;
+    // Auth calls return 401 for a wrong password or a dead session; those go straight back to the caller.
+    const isAuthCall = config?.url?.startsWith('/auth/');
+    if (response?.status !== 401 || isAuthCall) return Promise.reject(error);
+
+    if (!config.retried) {
+      try {
+        await refreshSession();
+        return api({ ...config, retried: true });
+      } catch {
+        // Refresh failed: fall through to the login page.
+      }
     }
+    clearSession();
+    window.location.href = '/login';
     return Promise.reject(error);
   }
 );
+
+export async function logout() {
+  try {
+    await api.post('/auth/logout');
+  } finally {
+    clearSession();
+  }
+}
 
 export function errorMessage(error) {
   if (error.response?.data?.error) return error.response.data.error;

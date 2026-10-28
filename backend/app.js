@@ -2,6 +2,7 @@
 // It doesn't listen on a port, so tests can load it directly. server.js starts it.
 const express = require('express');
 const compression = require('compression');
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
@@ -18,7 +19,9 @@ app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(compression()); // gzip: the appointments list goes from ~63 KB to ~6 KB
-app.use(cors({ origin: (process.env.CLIENT_ORIGIN || 'http://localhost:5173').split(',') }));
+// credentials: lets the browser send the refresh-token cookie when the frontend is on another domain.
+app.use(cors({ origin: (process.env.CLIENT_ORIGIN || 'http://localhost:5173').split(','), credentials: true }));
+app.use(cookieParser());
 app.use(express.json({ limit: '10kb' }));
 
 const openapi = YAML.parse(fs.readFileSync(path.join(__dirname, 'openapi.yaml'), 'utf8'));

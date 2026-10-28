@@ -31,7 +31,7 @@ paths:
     post:
       tags: [Auth]
       summary: Log in and get a token
-      description: Wrong username and wrong password give the same error. 10 failed attempts per 15 minutes per IP.
+      description: Returns a 15 minute access token and sets a 7 day httpOnly refreshToken cookie. Wrong username and wrong password give the same error. 10 failed attempts per 15 minutes per IP.
       security: []
       requestBody:
         required: true
@@ -52,6 +52,25 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { description: Account disabled, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: Too many failed attempts }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Get a new access token using the refresh-token cookie
+      description: The browser sends the httpOnly refreshToken cookie set at login. Each refresh token works once; a new one is set in its place.
+      security: []
+      responses:
+        '200': { description: New access token (and a new refreshToken cookie), content: { application/json: { example: { token: eyJhbGciOi..., user: { username: admin, role: admin } } } } }
+        '401': { description: No cookie, expired, already used, or account disabled }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: End this session
+      description: Deletes the refresh token on the server and clears the cookie.
+      security: []
+      responses:
+        '204': { description: Logged out }
 
   /patients:
     get:

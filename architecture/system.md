@@ -1,31 +1,40 @@
 # System architecture
 
-Every request goes through the same checks before it touches data. The frontend never talks to MongoDB or Groq directly, and the API key stays on the server.
+The browser only talks to the Express API. The API checks who you are and what you may do, then reads and writes MongoDB or calls Groq. The Groq key never leaves the server.
 
 ```mermaid
 flowchart LR
-    subgraph Browser
+    subgraph Client["Browser"]
         UI["React app<br/>Patients · Appointments · AI Assistant<br/>Documents · Audit Log · Staff"]
     end
 
-    subgraph API["Express API"]
-        direction LR
-        MW["helmet · CORS · gzip"] --> Auth["requireLogin<br/>JWT + account active"] --> Role["requireRole<br/>admin / staff"] --> Svc["Services<br/>patients · appointments<br/>staff · audit · chat"]
-    end
-
-    subgraph AI["AI assistant"]
+    subgraph Server["Express API"]
         direction TB
-        LLM["Groq LLM<br/>answer + judge"]
-        Tools["Patient tools<br/>read-only, role-checked"]
+        MW["helmet · CORS · gzip · JSON · cookies"]
+        AUTH["requireLogin · requireRole<br/>JWT + account still active"]
+        SVC["Services<br/>patients · appointments · staff<br/>audit · chat · auth"]
+        MW --- AUTH --- SVC
     end
 
-    DB[("MongoDB Atlas<br/>patients · appointments · users<br/>audit_logs · conversations · faq_sections")]
-    Docs["Swagger<br/>/api/docs"]
+    subgraph Data["MongoDB Atlas"]
+        DB[("patients · appointments · users<br/>audit_logs · conversations<br/>faq_sections · refresh_tokens")]
+    end
 
-    UI -- "HTTPS + Bearer token" --> MW
-    Svc -- "data + audit entries" --> DB
-    Svc -- "question + clinic docs" --> LLM
-    LLM -. "requests a tool" .-> Tools
-    Tools --> DB
-    API --- Docs
+    subgraph AI["AI"]
+        direction TB
+        LLM["Groq · openai/gpt-oss-20b<br/>answer + judge"]
+        TOOLS["Patient tools<br/>read-only, role-checked"]
+        LLM --- TOOLS
+    end
+
+    UI ---|"HTTPS · access token<br/>refresh cookie"| MW
+    SVC --- DB
+    SVC ---|"question + context"| LLM
+    TOOLS --- DB
 ```
+
+| Piece | Where |
+|---|---|
+| Access token | JWT, 15 minutes, sent as `Authorization: Bearer` |
+| Refresh token | Random 96-char token, 7 days, httpOnly cookie on `/api/auth`, stored hashed, replaced on every use |
+| API docs | Swagger at `/api/docs` · table in [API.md](../API.md) |

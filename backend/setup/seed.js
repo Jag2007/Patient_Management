@@ -12,6 +12,7 @@ const Appointment = require('../models/Appointment');
 const AuditLog = require('../models/AuditLog');
 const FaqSection = require('../models/FaqSection');
 const Conversation = require('../models/Conversation');
+const RefreshToken = require('../models/RefreshToken');
 
 const DAY = 24 * 60 * 60 * 1000;
 const users = require('./seed-data/users.json');
@@ -39,7 +40,7 @@ function readFaqSections() {
 
 async function seed() {
   await connectDB();
-  const models = [User, Patient, Appointment, AuditLog, FaqSection, Conversation];
+  const models = [User, Patient, Appointment, AuditLog, FaqSection, Conversation, RefreshToken];
   await Promise.all(models.map((model) => model.deleteMany({})));
 
   await User.create(

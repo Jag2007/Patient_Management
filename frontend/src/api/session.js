@@ -1,4 +1,4 @@
-// Saves the logged-in user's token and role in localStorage. The role only hides menu items; the backend checks every request.
+// Saves the short-lived access token and role in localStorage (the refresh token is an httpOnly cookie the page can't read).
 // Logging out also clears the saved AI chat so the next person can't see it.
 import { clearChat } from './chatStorage';
 
